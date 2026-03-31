@@ -1,0 +1,11 @@
+#!/usr/bin/env bun
+
+import { resolveSkillRoot, runCli } from "@browser-skill/core";
+import skill from "../src/index.ts";
+
+runCli(skill, process.argv.slice(2), { rootDir: resolveSkillRoot(import.meta.url) }).then((exitCode) => {
+  process.exitCode = exitCode;
+}).catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

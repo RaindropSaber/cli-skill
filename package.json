@@ -1,0 +1,19 @@
+{
+  "name": "browser-skill",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "bun@1.3.5",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "bun install && bun run build",
+    "build": "bun run --workspaces build",
+    "check": "bun run --workspaces check"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.0.10",
+    "typescript": "^5.9.2"
+  }
+}
