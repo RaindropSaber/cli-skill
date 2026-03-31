@@ -43,14 +43,14 @@ async function fileExists(filePath: string): Promise<boolean> {
 async function getCurrentSkillName(cwd = process.cwd()): Promise<string | null> {
   try {
     const packageJsonRaw = await readFile(path.join(cwd, "package.json"), "utf8");
-    const packageJson = JSON.parse(packageJsonRaw) as { name?: string; browserSkill?: unknown };
-    if (!packageJson.browserSkill || !packageJson.name) {
+    const packageJson = JSON.parse(packageJsonRaw) as { name?: string; cliSkill?: unknown };
+    if (!packageJson.cliSkill || !packageJson.name) {
       return null;
     }
 
     const rawName = packageJson.name.split("/").at(-1) ?? packageJson.name;
-    return rawName.startsWith("browser-skill-")
-      ? rawName.slice("browser-skill-".length)
+    return rawName.startsWith("cli-skill-")
+      ? rawName.slice("cli-skill-".length)
       : rawName;
   } catch {
     return null;

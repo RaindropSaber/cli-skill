@@ -6,6 +6,7 @@ import path from "node:path";
 
 export interface BrowserSkillCliConfig {
   skillsRoot?: string;
+  installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
   skillConfig?: Record<string, Record<string, unknown>>;
 }
@@ -23,7 +24,7 @@ function resolveUserPath(inputPath: string): string {
 }
 
 export function getBrowserSkillHome(): string {
-  return path.join(os.homedir(), ".browser-skill");
+  return path.join(os.homedir(), ".cli-skill");
 }
 
 export function getBrowserSkillConfigPath(): string {
@@ -40,17 +41,19 @@ export async function loadBrowserSkillCliConfig(): Promise<BrowserSkillCliConfig
 }
 
 export function getDefaultBrowserSkillCliConfig(): Required<
-  Pick<BrowserSkillCliConfig, "skillsRoot" | "agentsSkillsRoot" | "skillConfig">
+  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "skillConfig">
 > {
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
+    installedSkillsRoot: path.join(getBrowserSkillHome(), "installed"),
     agentsSkillsRoot: path.join(os.homedir(), ".agents", "skills"),
     skillConfig: {},
   };
 }
 
 export async function getResolvedBrowserSkillCliConfig(): Promise<
-  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "agentsSkillsRoot">> & BrowserSkillCliConfig
+  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot">> &
+    BrowserSkillCliConfig
 > {
   const config = await loadBrowserSkillCliConfig();
   const defaults = getDefaultBrowserSkillCliConfig();
@@ -59,18 +62,33 @@ export async function getResolvedBrowserSkillCliConfig(): Promise<
     ...config,
     skillConfig: config.skillConfig ?? defaults.skillConfig,
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
+    installedSkillsRoot: resolveUserPath(config.installedSkillsRoot ?? defaults.installedSkillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
   };
 }
 
 export async function ensureBrowserSkillCliConfig(): Promise<string> {
   const configPath = getBrowserSkillConfigPath();
+  const defaults = getDefaultBrowserSkillCliConfig();
 
   try {
-    await readFile(configPath, "utf8");
+    const raw = await readFile(configPath, "utf8");
+    const parsed = (JSON.parse(raw) as BrowserSkillCliConfig) ?? {};
+    const nextConfig: BrowserSkillCliConfig = {
+      ...parsed,
+      skillsRoot: parsed.skillsRoot ?? defaults.skillsRoot,
+      installedSkillsRoot: parsed.installedSkillsRoot ?? defaults.installedSkillsRoot,
+      agentsSkillsRoot: parsed.agentsSkillsRoot ?? defaults.agentsSkillsRoot,
+      skillConfig: parsed.skillConfig ?? defaults.skillConfig,
+    };
+
+    if (JSON.stringify(parsed) !== JSON.stringify(nextConfig)) {
+      await saveBrowserSkillCliConfig(nextConfig);
+    }
+
     return configPath;
   } catch {
-    await saveBrowserSkillCliConfig(getDefaultBrowserSkillCliConfig());
+    await saveBrowserSkillCliConfig(defaults);
     return configPath;
   }
 }

@@ -7,18 +7,22 @@
   "bin": {
     "__CLI_NAME__": "./bin/__CLI_NAME__"
   },
+  "keywords": [
+    "cli-skill",
+    "__SKILL_NAME__"
+  ],
   "scripts": {
     "build": "bun run check",
     "check": "tsc --noEmit -p tsconfig.json",
     "cli": "bun ./bin/__CLI_NAME__"
   },
   "dependencies": {
-    "@browser-skill/core": "file:__LOCAL_CORE_PACKAGE_PATH__",
+    "@cli-skill/core": "^__CORE_PACKAGE_VERSION__",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^24.0.10",
     "typescript": "^5.9.2"
   },
-  "browserSkill": true
+  "cliSkill": true
 }

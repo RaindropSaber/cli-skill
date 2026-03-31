@@ -1,53 +1,69 @@
-import { cac } from "cac";
 import { createSkillProject } from "./create-skill-project";
 
+interface CliOptions {
+  template?: string;
+  skillName?: string;
+  cliName?: string;
+  targetDir?: string;
+  corePackageVersion?: string;
+}
+
+function parseArgs(argv: string[]): CliOptions {
+  const options: CliOptions = {};
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    const next = argv[index + 1];
+
+    if (arg === "--skill-name") {
+      options.skillName = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--template") {
+      options.template = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--cli-name") {
+      options.cliName = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--target-dir") {
+      options.targetDir = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--core-package-version") {
+      options.corePackageVersion = next;
+      index += 1;
+      continue;
+    }
+  }
+
+  return options;
+}
+
 async function main(argv = process.argv.slice(2)): Promise<void> {
-  const cli = cac("browser-skill-create-template");
+  const options = parseArgs(argv);
+  if (!options.skillName) throw new Error("Missing --skill-name");
+  if (!options.targetDir) throw new Error("Missing --target-dir");
+  if (!options.corePackageVersion) throw new Error("Missing --core-package-version");
 
-  cli
-    .command("[root]", "Generate a browser skill from a named template")
-    .option("--template <templateName>", "Template name", {
-      default: "basic",
-    })
-    .option("--skill-name <skillName>", "Skill name")
-    .option("--cli-name <cliName>", "CLI name")
-    .option("--target-dir <targetDir>", "Output directory")
-    .option("--core-package-path <corePackagePath>", "Local @browser-skill/core package path")
-    .action(
-      async (
-        _root: string | undefined,
-        options: {
-          template?: string;
-          skillName?: string;
-          cliName?: string;
-          targetDir?: string;
-          corePackagePath?: string;
-        },
-      ) => {
-        if (!options.skillName) {
-          throw new Error("Missing --skill-name");
-        }
-        if (!options.targetDir) {
-          throw new Error("Missing --target-dir");
-        }
-        if (!options.corePackagePath) {
-          throw new Error("Missing --core-package-path");
-        }
+  const targetDir = await createSkillProject({
+    templateName: options.template ?? "basic",
+    skillName: options.skillName,
+    cliName: options.cliName ?? options.skillName,
+    targetDir: options.targetDir,
+    corePackageVersion: options.corePackageVersion,
+  });
 
-        const targetDir = await createSkillProject({
-          templateName: options.template ?? "basic",
-          skillName: options.skillName,
-          cliName: options.cliName ?? options.skillName,
-          targetDir: options.targetDir,
-          corePackagePath: options.corePackagePath,
-        });
-
-        console.log(targetDir);
-      },
-    );
-
-  cli.help();
-  cli.parse(["node", "browser-skill-create-template", ...argv]);
+  console.log(targetDir);
 }
 
 main().catch((error) => {

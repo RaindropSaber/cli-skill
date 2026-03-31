@@ -1,45 +1,60 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { SkillDefinition } from "@browser-skill/core";
+import type { SkillDefinition } from "@cli-skill/core";
 import {
+  DEFAULT_TEMPLATE_NAME,
   LOCAL_CORE_PACKAGE_PATH,
   LOCAL_TEMPLATE_PACKAGE_PATH,
   getDefaultSkillsRoot,
 } from "./constants";
-import { runNpmAndCapture } from "./npm";
+import { runBunx } from "./bun";
 
 export interface SkillPackageJson {
   name?: string;
   bin?: string | Record<string, string>;
-  browserSkill?: boolean | Record<string, unknown>;
+  cliSkill?: boolean | Record<string, unknown>;
+  version?: string;
 }
 
-export async function initSkillProject(
+async function getLocalCorePackageVersion(): Promise<string> {
+  const corePackageJsonPath = path.join(LOCAL_CORE_PACKAGE_PATH, "package.json");
+  const corePackageJson = JSON.parse(
+    await readFile(corePackageJsonPath, "utf8"),
+  ) as SkillPackageJson;
+
+  if (typeof corePackageJson.version !== "string" || corePackageJson.version.length === 0) {
+    throw new Error(`Missing version in ${corePackageJsonPath}`);
+  }
+
+  return corePackageJson.version;
+}
+
+export async function createSkillProject(
   skillName: string,
   cliName = skillName,
+  templateName = DEFAULT_TEMPLATE_NAME,
   targetRoot?: string,
 ): Promise<string> {
   const resolvedTargetRoot = targetRoot ?? (await getDefaultSkillsRoot());
   const targetDir = path.join(resolvedTargetRoot, skillName);
-  await runNpmAndCapture(
+  const corePackageVersion = await getLocalCorePackageVersion();
+  await runBunx(
     [
-      "exec",
-      "--yes",
+      "--bun",
       "--package",
       `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`,
-      "--",
-      "browser-skill-create-template",
+      "cli-skill-create-template",
       "--template",
-      "basic",
+      templateName,
       "--skill-name",
       skillName,
       "--cli-name",
       cliName,
       "--target-dir",
       targetDir,
-      "--core-package-path",
-      LOCAL_CORE_PACKAGE_PATH,
+      "--core-package-version",
+      corePackageVersion,
     ],
     process.cwd(),
   );
@@ -54,8 +69,8 @@ export async function loadSkillPackageJson(projectDir: string): Promise<SkillPac
 
 export function getSkillNameFromPackageName(packageName: string): string {
   const rawName = packageName.split("/").at(-1) ?? packageName;
-  return rawName.startsWith("browser-skill-")
-    ? rawName.slice("browser-skill-".length)
+  return rawName.startsWith("cli-skill-")
+    ? rawName.slice("cli-skill-".length)
     : rawName;
 }
 
@@ -63,8 +78,8 @@ export async function ensureValidSkillProject(
   projectDir: string,
 ): Promise<{ packageName: string; skillName: string; bins: Record<string, string> }> {
   const packageJson = await loadSkillPackageJson(projectDir);
-  if (!packageJson.browserSkill) {
-    throw new Error(`Missing browserSkill field in ${path.join(projectDir, "package.json")}`);
+  if (!packageJson.cliSkill) {
+    throw new Error(`Missing cliSkill field in ${path.join(projectDir, "package.json")}`);
   }
 
   if (typeof packageJson.name !== "string" || packageJson.name.length === 0) {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defineTool, okResult } from '@browser-skill/core';
+import { defineTool, okResult } from '@cli-skill/core';
 
 const inputSchema = z.object({
   message: z.string(),

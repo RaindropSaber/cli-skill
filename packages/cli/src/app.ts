@@ -1,22 +1,26 @@
 import { cac } from "cac";
 import { registerConfigCommand } from "./commands/config";
+import { registerCreateCommand } from "./commands/create";
+import { registerDisableCommand } from "./commands/disable";
 import { registerSyncSkillCommand } from "./commands/docs";
-import { registerInitCommand } from "./commands/init";
+import { registerEnableCommand } from "./commands/enable";
 import { registerInstallCommand } from "./commands/install";
-import { registerLinkCommand } from "./commands/link";
+import { registerListCommand } from "./commands/list";
+import { registerPublishCommand } from "./commands/publish";
 import { registerUninstallCommand } from "./commands/uninstall";
-import { registerUnlinkCommand } from "./commands/unlink";
 
 export function createApp() {
-  const cli = cac("browser-skill");
+  const cli = cac("cli-skill");
 
-  registerInitCommand(cli);
+  registerCreateCommand(cli);
   registerConfigCommand(cli);
   registerSyncSkillCommand(cli);
-  registerLinkCommand(cli);
-  registerUnlinkCommand(cli);
+  registerListCommand(cli);
+  registerEnableCommand(cli);
+  registerDisableCommand(cli);
   registerInstallCommand(cli);
   registerUninstallCommand(cli);
+  registerPublishCommand(cli);
 
   cli.help();
   cli.version("0.1.0");

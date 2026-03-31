@@ -7,9 +7,9 @@ description: 说明如何使用 __CLI_NAME__ 操作 __SKILL_NAME__ skill。
 
 ## 概述
 
-这个 skill 提供一个示例工具 `sample_tool`，用于验证 browser-skill 生成出来的 skill 是否可正常工作。
+这个 skill 提供一个示例工具 `sample_tool`，用于验证 cli-skill 生成出来的 skill 是否可正常工作。
 
-这个 skill 的文档结构应尽量保持简洁，概述之外，主要内容通过 `browser-skill sync-skill --write` 自动生成并同步。
+这个 skill 的文档结构应尽量保持简洁，概述之外，主要内容通过 `cli-skill sync-skill --write` 自动生成并同步。
 
 ## Tool Reference
 

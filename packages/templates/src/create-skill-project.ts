@@ -6,18 +6,18 @@ interface CreateSkillProjectOptions {
   skillName: string;
   cliName: string;
   targetDir: string;
-  corePackagePath: string;
+  corePackageVersion: string;
 }
 
 function toPackageName(skillName: string): string {
-  return `browser-skill-${skillName}`;
+  return `cli-skill-${skillName}`;
 }
 
 function render(template: string, options: CreateSkillProjectOptions): string {
   return template
     .replaceAll("__SKILL_NAME__", options.skillName)
     .replaceAll("__CLI_NAME__", options.cliName)
-    .replaceAll("__LOCAL_CORE_PACKAGE_PATH__", options.corePackagePath)
+    .replaceAll("__CORE_PACKAGE_VERSION__", options.corePackageVersion)
     .replaceAll("__PACKAGE_NAME__", toPackageName(options.skillName));
 }
 
@@ -55,7 +55,7 @@ async function copyTemplateDirectory(
 }
 
 export async function createSkillProject(options: CreateSkillProjectOptions): Promise<string> {
-  const templateRoot = path.resolve(import.meta.dirname, "../templates", options.templateName);
+  const templateRoot = path.resolve(import.meta.dirname, `../${options.templateName}`);
   const templateStat = await stat(templateRoot);
   if (!templateStat.isDirectory()) {
     throw new Error(`Template directory not found: ${templateRoot}`);

@@ -24,8 +24,8 @@ function printConfigValue(value: unknown): void {
 
 export function registerConfigCommand(cli: CAC): void {
   cli
-    .command("config [...args]", "Manage browser-skill config")
-    .usage("config get [keyPath]\n  browser-skill config set <keyPath> <value>")
+    .command("config [...args]", "Manage cli-skill config")
+    .usage("config get [keyPath]\n  cli-skill config set <keyPath> <value>")
     .action(async (args: string[] = []) => {
       const [subcommand, keyPath, rawValue] = args;
 
@@ -38,7 +38,7 @@ export function registerConfigCommand(cli: CAC): void {
 
       if (subcommand === "set") {
         if (!keyPath || typeof rawValue === "undefined") {
-          throw new Error("Usage: browser-skill config set <keyPath> <value>");
+          throw new Error("Usage: cli-skill config set <keyPath> <value>");
         }
 
         const currentConfig = await loadBrowserSkillCliConfig();
@@ -48,6 +48,6 @@ export function registerConfigCommand(cli: CAC): void {
         return;
       }
 
-      throw new Error("Usage: browser-skill config get [keyPath] | browser-skill config set <keyPath> <value>");
+      throw new Error("Usage: cli-skill config get [keyPath] | cli-skill config set <keyPath> <value>");
     });
 }

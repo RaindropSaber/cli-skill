@@ -16,7 +16,7 @@ function resolveUserPath(inputPath: string): string {
 }
 
 export function getBrowserSkillHome(): string {
-  return path.join(os.homedir(), ".browser-skill");
+  return path.join(os.homedir(), ".cli-skill");
 }
 
 export function getBrowserSkillConfigPath(): string {

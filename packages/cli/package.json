@@ -1,25 +1,24 @@
 {
-  "name": "@browser-skill/cli",
+  "name": "@cli-skill/cli",
   "version": "0.1.0",
   "type": "module",
-  "main": "./lib/index.mjs",
-  "types": "./lib/index.d.mts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "bin": {
-    "browser-skill": "./bin/browser-skill"
+    "cli-skill": "./bin/cli-skill"
   },
   "exports": {
     ".": {
-      "types": "./lib/index.d.mts",
-      "import": "./lib/index.mjs"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "check": "tsc --noEmit -p tsconfig.json",
-    "postinstall": "node ./scripts/postinstall.mjs"
+    "check": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@browser-skill/core": "workspace:*",
+    "@cli-skill/core": "workspace:*",
     "cac": "^6.7.14",
     "lodash": "^4.17.21"
   }

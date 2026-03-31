@@ -1,11 +1,11 @@
 import { createApp } from "./app";
 import { ensureBrowserSkillCliConfig } from "./config";
-export { initSkillProject } from "./project";
+export { createSkillProject } from "./project";
 
 async function main(argv = process.argv.slice(2)): Promise<void> {
   await ensureBrowserSkillCliConfig();
   const cli = createApp();
-  cli.parse(["node", "browser-skill", ...argv], { run: false });
+  cli.parse(["node", "cli-skill", ...argv], { run: false });
   await cli.runMatchedCommand();
 }
 

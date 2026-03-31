@@ -1,5 +1,5 @@
 import type { CAC } from "cac";
-import { renderSkillDocsMarkdown, writeSkillDocsMarkdown } from "@browser-skill/core";
+import { renderSkillDocsMarkdown, writeSkillDocsMarkdown } from "@cli-skill/core";
 import { ensureValidSkillProject, loadSkillDefinition } from "../project";
 
 export function registerSyncSkillCommand(cli: CAC): void {

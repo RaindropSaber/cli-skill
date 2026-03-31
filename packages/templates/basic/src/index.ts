@@ -1,4 +1,4 @@
-import { defineSkill } from "@browser-skill/core";
+import { defineSkill } from "@cli-skill/core";
 import { tools } from "./tools";
 
 export const skill = defineSkill({

@@ -1,15 +1,12 @@
 import type { CAC } from "cac";
-import { runNpm } from "../npm";
-import { getSkillNameFromPackageName } from "../project";
-import { unregisterSkillByName } from "../registry";
+import { removeManagedSkill } from "../registry";
 
 export function registerUninstallCommand(cli: CAC): void {
-  cli.command("uninstall <packageName>", "Uninstall a published browser skill globally").action(
-    async (packageName: string) => {
-      await runNpm(["uninstall", "-g", packageName]);
-      const skillName = getSkillNameFromPackageName(packageName);
-      const targetPath = await unregisterSkillByName(skillName);
+  cli
+    .command("uninstall <packageName>", "Uninstall a managed cli skill")
+    .option("--skill-root <skillRoot>", "Override the target skill registration directory")
+    .action(async (packageName: string, options: { skillRoot?: string }) => {
+      const targetPath = await removeManagedSkill(packageName, { skillRoot: options.skillRoot });
       console.log(targetPath);
-    },
-  );
+    });
 }
