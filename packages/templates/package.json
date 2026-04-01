@@ -1,6 +1,6 @@
 {
   "name": "@cli-skill/templates",
-  "version": "0.0.1-beta-0bd6ac7",
+  "version": "0.0.1-beta-16d46c3",
   "type": "module",
   "bin": {
     "cli-skill-create-template": "./bin/cli-skill-create-template"
