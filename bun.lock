@@ -39,21 +39,6 @@
         "cli-skill-create-template": "./bin/cli-skill-create-template",
       },
     },
-    "packages/templates/basic": {
-      "name": "__PACKAGE_NAME__",
-      "version": "0.1.0",
-      "bin": {
-        "__CLI_NAME__": "./bin/__CLI_NAME__",
-      },
-      "dependencies": {
-        "@cli-skill/core": "^__CORE_PACKAGE_VERSION__",
-        "zod": "^3.25.76",
-      },
-      "devDependencies": {
-        "@types/node": "^24.0.10",
-        "typescript": "^5.9.2",
-      },
-    },
   },
   "packages": {
     "@cli-skill/cli": ["@cli-skill/cli@workspace:packages/cli"],
@@ -65,8 +50,6 @@
     "@types/lodash": ["@types/lodash@4.17.24", "", {}, "sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ=="],
 
     "@types/node": ["@types/node@24.12.0", "", { "dependencies": { "undici-types": "7.16.0" } }, "sha512-GYDxsZi3ChgmckRT9HPU0WEhKLP08ev/Yfcq2AstjrDASOYCSXeyjDsHg4v5t4jOj7cyDX3vmprafKlWIG9MXQ=="],
-
-    "__PACKAGE_NAME__": ["__PACKAGE_NAME__@workspace:packages/templates/basic"],
 
     "cac": ["cac@6.7.14", "", {}, "sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ=="],
 
