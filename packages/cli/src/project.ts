@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import type { SkillDefinition } from "@cli-skill/core";
 import {
   DEFAULT_TEMPLATE_NAME,
+  hasLocalTemplatesPackage,
   LOCAL_CORE_PACKAGE_PATH,
   LOCAL_TEMPLATE_PACKAGE_PATH,
   getDefaultSkillsRoot,
@@ -30,6 +31,17 @@ async function getLocalCorePackageVersion(): Promise<string> {
   return corePackageJson.version;
 }
 
+async function getCliPackageVersion(): Promise<string> {
+  const cliPackageJsonPath = path.resolve(import.meta.dirname, "..", "package.json");
+  const cliPackageJson = JSON.parse(await readFile(cliPackageJsonPath, "utf8")) as SkillPackageJson;
+
+  if (typeof cliPackageJson.version !== "string" || cliPackageJson.version.length === 0) {
+    throw new Error(`Missing version in ${cliPackageJsonPath}`);
+  }
+
+  return cliPackageJson.version;
+}
+
 export async function createSkillProject(
   skillName: string,
   cliName = skillName,
@@ -38,12 +50,19 @@ export async function createSkillProject(
 ): Promise<string> {
   const resolvedTargetRoot = targetRoot ?? (await getDefaultSkillsRoot());
   const targetDir = path.join(resolvedTargetRoot, skillName);
-  const corePackageVersion = await getLocalCorePackageVersion();
+  const usingLocalTemplates = await hasLocalTemplatesPackage();
+  const cliPackageVersion = usingLocalTemplates ? undefined : await getCliPackageVersion();
+  const corePackageVersion = usingLocalTemplates
+    ? await getLocalCorePackageVersion()
+    : cliPackageVersion!;
+  const templatePackageSpec = usingLocalTemplates
+    ? `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`
+    : `@cli-skill/templates@${cliPackageVersion!}`;
   await runBunx(
     [
       "--bun",
       "--package",
-      `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`,
+      templatePackageSpec,
       "cli-skill-create-template",
       "--template",
       templateName,

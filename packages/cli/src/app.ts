@@ -9,7 +9,7 @@ import { registerListCommand } from "./commands/list";
 import { registerPublishCommand } from "./commands/publish";
 import { registerUninstallCommand } from "./commands/uninstall";
 
-export function createApp() {
+export function createApp(version: string) {
   const cli = cac("cli-skill");
 
   registerCreateCommand(cli);
@@ -23,6 +23,6 @@ export function createApp() {
   registerPublishCommand(cli);
 
   cli.help();
-  cli.version("0.1.0");
+  cli.version(version);
   return cli;
 }
