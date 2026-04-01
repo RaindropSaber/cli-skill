@@ -11,7 +11,7 @@
     "bootstrap": "bun install && bun run build",
     "build": "bun run --workspaces build",
     "check": "bun run --workspaces check",
-    "release": "bun ./scripts/release.mjs"
+    "release": "bun ./scripts/release.ts"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
