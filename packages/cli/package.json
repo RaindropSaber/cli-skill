@@ -1,6 +1,6 @@
 {
   "name": "@cli-skill/cli",
-  "version": "0.1.0",
+  "version": "0.0.1-beta-d3a2d41",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -18,7 +18,7 @@
     "check": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@cli-skill/core": "workspace:*",
+    "@cli-skill/core": "^0.0.1-beta-d3a2d41",
     "cac": "^6.7.14",
     "lodash": "^4.17.21"
   }
