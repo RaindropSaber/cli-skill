@@ -34,10 +34,6 @@ jobs:
         id: verify
         run: bun ./scripts/verify-publish-state.ts prerelease >> "$GITHUB_OUTPUT"
 
-      - name: Skip non-prerelease branch publish
-        if: steps.verify.outputs.should_publish != 'true'
-        run: echo "Current branch version is not a beta prerelease. Skipping npm publish."
-
   publish:
     needs: prepare
     if: needs.prepare.outputs.should_publish == 'true'

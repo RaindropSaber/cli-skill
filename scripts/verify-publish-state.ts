@@ -47,8 +47,11 @@ async function verifySharedVersion(expectedVersion) {
 async function verifyPrerelease() {
   const version = await verifySharedVersion();
   const shouldPublish = version.includes("-beta-");
+  if (!shouldPublish) {
+    throw new Error("Current branch version is not a beta prerelease. Refusing prerelease publish workflow.");
+  }
   console.log(`version=${version}`);
-  console.log(`should_publish=${shouldPublish ? "true" : "false"}`);
+  console.log("should_publish=true");
 }
 
 async function verifyRelease(expectedVersion) {
