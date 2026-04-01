@@ -31,16 +31,16 @@ jobs:
           bun ./scripts/verify-publish-state.ts release "$VERSION"
 
       - name: Publish @cli-skill/core
-        run: bun publish ./packages/core --access public --tag latest
+        run: bun publish --cwd ./packages/core --access public --tag latest
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @cli-skill/templates
-        run: bun publish ./packages/templates --access public --tag latest
+        run: bun publish --cwd ./packages/templates --access public --tag latest
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @cli-skill/cli
-        run: bun publish ./packages/cli --access public --tag latest
+        run: bun publish --cwd ./packages/cli --access public --tag latest
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
