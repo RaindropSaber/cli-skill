@@ -2,8 +2,8 @@ import type { CAC } from "cac";
 import https from "node:https";
 import path from "node:path";
 import { installPackageToDirectory } from "../bun";
-import { getInstalledSkillsRoot } from "../constants";
-import { installManagedSkill } from "../registry";
+import { getDefaultSkillsRoot } from "../constants";
+import { registerInstalledSkillProject, setupLocalSkillBins } from "../registry";
 
 interface SearchResultPackage {
   name: string;
@@ -98,23 +98,21 @@ export function registerInstallCommand(cli: CAC): void {
     .alias("i")
     .option("--packageName <packageName>", "Install directly by explicit package name")
     .option("--package-name <packageName>", "Install directly by explicit package name")
-    .option("--skill-root <skillRoot>", "Override the target skill registration directory")
     .action(
       async (
         skillName: string,
-        options: { packageName?: string; "package-name"?: string; skillRoot?: string },
+        options: { packageName?: string; "package-name"?: string },
       ) => {
         const explicitPackageName = options.packageName ?? options["package-name"];
         const { packageSpec, packageName } = await resolveInstallTarget(skillName, explicitPackageName);
 
-        const installedSkillsRoot = await getInstalledSkillsRoot();
-        const installDir = path.join(installedSkillsRoot, packageName.replaceAll("/", "__"));
+        const skillsRoot = await getDefaultSkillsRoot();
+        const installDir = path.join(skillsRoot, skillName);
         await installPackageToDirectory(packageSpec, installDir);
         const packageDir = path.join(installDir, "node_modules", packageName);
-        const targetPath = await installManagedSkill(packageName, packageSpec, packageDir, {
-          skillRoot: options.skillRoot,
-        });
-        console.log(targetPath);
+        await registerInstalledSkillProject(packageDir);
+        await setupLocalSkillBins(packageDir);
+        console.log(packageDir);
       },
     );
 }

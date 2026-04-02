@@ -2,13 +2,14 @@
 
 `@cli-skill/cli` 是 `cli-skill` 的平台命令行入口。
 
-它不是某一个具体 skill 的运行时，而是整个 skill 生命周期的管理入口。
+它不是某一个具体 skill 的运行时，而是整个 skill 生命周期和本地注册表的管理入口。
 
 ## 主要职责
 
 - 创建新的 skill 项目
-- 提供统一的 skill 作用域命令入口
-- 构建 `skill/` 产物
+- 维护本地 skill 注册表
+- 提供当前目录命令和已注册 skill 执行入口
+- 生成 `skill/` 产物
 - 安装和卸载已发布 skill
 - 挂载和取消挂载本地 skill
 - 发布本地 skill
@@ -25,30 +26,31 @@ cli-skill install <skillName> [--packageName <packageName>]
 cli-skill uninstall <packageName>
 cli-skill config get [keyPath]
 cli-skill config set <keyPath> <value>
+cli-skill exec <skillName> <toolName> [rawInput]
 ```
 
-### skill 作用域命令
+### 当前目录命令
 
 ```bash
-cli-skill <skillName> list
-cli-skill <skillName> run <toolName> [rawInput]
-cli-skill <skillName> config get [keyPath]
-cli-skill <skillName> config set <keyPath> <value>
-cli-skill <skillName> config unset <keyPath>
-cli-skill <skillName> mount [targetPath]
-cli-skill <skillName> unmount [targetPath]
-cli-skill <skillName> build
-cli-skill <skillName> publish [--dry-run] [--tag <tag>]
+cli-skill tools
+cli-skill run <toolName> [rawInput]
+cli-skill config get [keyPath]
+cli-skill config set <keyPath> <value>
+cli-skill config unset <keyPath>
+cli-skill build
+cli-skill mount [targetPath]
+cli-skill unmount [targetPath]
+cli-skill publish [--dry-run] [--tag <tag>]
 ```
 
 ## 典型工作流
 
 ```bash
 cli-skill create my-skill --cli-name my-skill
-cd ~/.cli-skill/skills/my-skill
+cd ./my-skill
 bun install
-cli-skill my-skill build
-cli-skill my-skill mount
+cli-skill build
+cli-skill mount
 ```
 
 ## skill 项目结构
@@ -68,7 +70,7 @@ cli-skill my-skill mount
 - `src/skill/*`
   - 文档模板源目录
 
-执行 `build` 后会生成：
+执行 `cli-skill build` 后会生成：
 
 - `skill/SKILL.md`
 - `skill/agents/openai.yaml`
@@ -80,7 +82,7 @@ cli-skill my-skill mount
 
 ## build 输入
 
-`cli-skill <skillName> build` 会读取：
+`cli-skill build` 会读取：
 
 - `src/index.ts`
 - `src/skill/`
@@ -97,13 +99,17 @@ cli-skill my-skill mount
 
 ## 安装模型
 
-本地 skill 默认放在：
+本地创建的 skill 默认放在当前目录：
+
+- `./<skill-name>`
+
+已安装 skill 默认放在：
 
 - `~/.cli-skill/skills`
 
-托管安装目录默认是：
+本地注册表默认放在：
 
-- `~/.cli-skill/installed`
+- `~/.cli-skill/registry.json`
 
 默认 agent 目录是：
 

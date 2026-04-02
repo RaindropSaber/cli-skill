@@ -11,8 +11,6 @@
     }
   },
   "scripts": {
-    "prepublish": "bun run build",
-    "build": "tsc -p tsconfig.json",
     "test": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -24,6 +22,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/node": "^24.0.10",
     "zod": "^3.25.76"
   }
 }

@@ -5,9 +5,7 @@ import type { SkillDefinition } from "@cli-skill/core";
 import {
   DEFAULT_TEMPLATE_NAME,
   hasLocalTemplatesPackage,
-  LOCAL_CORE_PACKAGE_PATH,
   LOCAL_TEMPLATE_PACKAGE_PATH,
-  getDefaultSkillsRoot,
 } from "./constants";
 import { runBunx } from "./bun";
 
@@ -53,16 +51,14 @@ export async function createSkillProject(
   templateName = DEFAULT_TEMPLATE_NAME,
   targetRoot?: string,
 ): Promise<string> {
-  const resolvedTargetRoot = targetRoot ?? (await getDefaultSkillsRoot());
+  const resolvedTargetRoot = targetRoot ?? process.cwd();
   const targetDir = path.join(resolvedTargetRoot, skillName);
   const usingLocalTemplates = await hasLocalTemplatesPackage();
-  const cliPackageVersion = usingLocalTemplates ? undefined : await getCliPackageVersion();
-  const corePackageSpec = usingLocalTemplates
-    ? `file:${LOCAL_CORE_PACKAGE_PATH}`
-    : cliPackageVersion!;
+  const cliPackageVersion = await getCliPackageVersion();
+  const corePackageSpec = cliPackageVersion;
   const templatePackageSpec = usingLocalTemplates
     ? `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`
-    : `@cli-skill/templates@${cliPackageVersion!}`;
+    : `@cli-skill/templates@${cliPackageVersion}`;
   await runBunx(
     [
       "--bun",

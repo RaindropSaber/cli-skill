@@ -14,7 +14,6 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {

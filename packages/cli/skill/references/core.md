@@ -14,11 +14,11 @@
   - 真正执行动作的最小单元
 - `skill`
   - 对 tools 的组织与描述
-- `build` 产物
+- `skill/` 产物
   - 给 agent 使用的 `skill/` 目录
 
 源码不是直接写给 agent 的。  
-源码先定义 skill 和 tools，然后再由 `build` 生成 agent 真正消费的产物。
+源码先定义 skill 和 tools，然后再由 `cli-skill build` 生成 agent 真正消费的产物。
 
 ## skill 项目源码结构
 
@@ -40,7 +40,7 @@
 执行：
 
 ```bash
-cli-skill <skill-name> build
+cli-skill build
 ```
 
 之后，根目录会生成：
@@ -179,11 +179,11 @@ export default defineSkill({
 
 - `tool` 负责声明自己要 `browserPlugin`
 - `skill` 只负责把它组织起来
-- `build` 再负责生成 `skill/` 产物
+- `cli-skill build` 再负责生成 `skill/` 产物
 
 ## 文档模板怎么写
 
-`src/skill/*` 下的 `.md/.yaml/.yml` 文件会在 build 时做变量替换。
+`src/skill/*` 下的 `.md/.yaml/.yml` 文件会在 `cli-skill build` 时做变量替换。
 
 当前常用变量有：
 
@@ -217,7 +217,7 @@ export default defineSkill({
 
 - 怎么创建 skill
 - 怎么 mount / install / publish
-- 怎么 build 产物
+- 怎么生成 `skill/` 产物
 
 优先回到主 skill 文档：
 

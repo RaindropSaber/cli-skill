@@ -6,7 +6,9 @@ import {
   parseConfigCliValue,
   saveBrowserSkillCliConfig,
   setConfigValue,
+  unsetConfigValue,
 } from "../config";
+import { getCurrentSkillProject } from "../registry";
 
 function printConfigValue(value: unknown): void {
   if (typeof value === "string") {
@@ -25,13 +27,24 @@ function printConfigValue(value: unknown): void {
 export function registerConfigCommand(cli: CAC): void {
   cli
     .command("config [...args]", "Manage cli-skill config")
-    .usage("config get [keyPath]\n  cli-skill config set <keyPath> <value>")
+    .usage("config get [keyPath]\n  cli-skill config set <keyPath> <value>\n  cli-skill config unset <keyPath>")
     .action(async (args: string[] = []) => {
       const [subcommand, keyPath, rawValue] = args;
+      let currentSkillName: string | null = null;
+
+      try {
+        currentSkillName = (await getCurrentSkillProject()).skillName;
+      } catch {}
+
+      const scopedKeyPath = currentSkillName && keyPath
+        ? `skillConfig.${currentSkillName}.${keyPath}`
+        : currentSkillName
+          ? `skillConfig.${currentSkillName}`
+          : keyPath;
 
       if (subcommand === "get") {
         const currentConfig = await loadBrowserSkillCliConfig();
-        const value = getConfigValue(currentConfig, keyPath);
+        const value = getConfigValue(currentConfig, scopedKeyPath);
         printConfigValue(value);
         return;
       }
@@ -42,12 +55,28 @@ export function registerConfigCommand(cli: CAC): void {
         }
 
         const currentConfig = await loadBrowserSkillCliConfig();
-        const nextConfig = setConfigValue(currentConfig, keyPath, parseConfigCliValue(rawValue));
+        const nextConfig = setConfigValue(
+          currentConfig,
+          scopedKeyPath!,
+          parseConfigCliValue(rawValue),
+        );
         await saveBrowserSkillCliConfig(nextConfig);
         console.log(getBrowserSkillConfigPath());
         return;
       }
 
-      throw new Error("Usage: cli-skill config get [keyPath] | cli-skill config set <keyPath> <value>");
+      if (subcommand === "unset") {
+        if (!keyPath) {
+          throw new Error("Usage: cli-skill config unset <keyPath>");
+        }
+
+        const currentConfig = await loadBrowserSkillCliConfig();
+        const nextConfig = unsetConfigValue(currentConfig, scopedKeyPath!);
+        await saveBrowserSkillCliConfig(nextConfig);
+        console.log(getBrowserSkillConfigPath());
+        return;
+      }
+
+      throw new Error("Usage: cli-skill config get [keyPath] | cli-skill config set <keyPath> <value> | cli-skill config unset <keyPath>");
     });
 }

@@ -14,7 +14,9 @@
     "preinstall": "echo 'Creating cli skill project...'"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
     "test": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10"
   }
 }

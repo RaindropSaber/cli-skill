@@ -1,170 +1,83 @@
 import type { CAC } from "cac";
 import { runCli } from "@cli-skill/core";
-import {
-  getConfigValue,
-  loadBrowserSkillCliConfig,
-  parseConfigCliValue,
-  saveBrowserSkillCliConfig,
-  setConfigValue,
-  unsetConfigValue,
-} from "../config";
 import { writeSkillDocsMarkdown } from "../build";
+import { runBunStreaming } from "../bun";
 import { loadSkillDefinition } from "../project";
 import {
-  getLocalSkillProjectDir,
+  getCurrentSkillProject,
   mountSkillProject,
-  resolveSkillProject,
+  resolveRegisteredSkillProject,
   unmountSkillProject,
 } from "../registry";
-import { runBun } from "../bun";
 
-function printConfigValue(value: unknown): void {
-  if (typeof value === "string") {
-    console.log(value);
-    return;
-  }
+export function registerSkillCommands(cli: CAC): void {
+  cli
+    .command("exec <skillName> <toolName> [rawInput]", "Execute a tool from a registered cli skill")
+    .action(async (skillName: string, toolName: string, rawInput?: string) => {
+      const resolved = await resolveRegisteredSkillProject(skillName);
+      const skill = await loadSkillDefinition(resolved.projectPath);
+      const exitCode = await runCli(skill, ["run", toolName, ...(typeof rawInput === "string" ? [rawInput] : [])], {
+        rootDir: resolved.projectPath,
+      });
+      process.exitCode = exitCode;
+    });
 
-  if (typeof value === "undefined") {
-    console.log("undefined");
-    return;
-  }
-
-  console.log(JSON.stringify(value, null, 2));
-}
-
-function printSkillUsage(skillName: string): never {
-  throw new Error(
-    [
-      `Usage: cli-skill ${skillName} run <toolName> [rawInput]`,
-      `       cli-skill ${skillName} list`,
-      `       cli-skill ${skillName} config get [keyPath]`,
-      `       cli-skill ${skillName} config set <keyPath> <value>`,
-      `       cli-skill ${skillName} config unset <keyPath>`,
-      `       cli-skill ${skillName} mount [targetPath]`,
-      `       cli-skill ${skillName} unmount [targetPath]`,
-      `       cli-skill ${skillName} build`,
-      `       cli-skill ${skillName} publish [--dry-run] [--tag <tag>]`,
-    ].join("\n"),
-  );
-}
-
-async function handleSkillConfig(skillName: string, args: string[]): Promise<void> {
-  const [subcommand, keyPath, rawValue] = args;
-  const configRoot = `skillConfig.${skillName}`;
-
-  if (subcommand === "get") {
-    const currentConfig = await loadBrowserSkillCliConfig();
-    const value = getConfigValue(currentConfig, keyPath ? `${configRoot}.${keyPath}` : configRoot);
-    printConfigValue(value);
-    return;
-  }
-
-  if (subcommand === "set") {
-    if (!keyPath || typeof rawValue === "undefined") {
-      throw new Error(`Usage: cli-skill ${skillName} config set <keyPath> <value>`);
-    }
-
-    const currentConfig = await loadBrowserSkillCliConfig();
-    const nextConfig = setConfigValue(
-      currentConfig,
-      `${configRoot}.${keyPath}`,
-      parseConfigCliValue(rawValue),
-    );
-    await saveBrowserSkillCliConfig(nextConfig);
-    return;
-  }
-
-  if (subcommand === "unset") {
-    if (!keyPath) {
-      throw new Error(`Usage: cli-skill ${skillName} config unset <keyPath>`);
-    }
-
-    const currentConfig = await loadBrowserSkillCliConfig();
-    const nextConfig = unsetConfigValue(currentConfig, `${configRoot}.${keyPath}`);
-    await saveBrowserSkillCliConfig(nextConfig);
-    return;
-  }
-
-  throw new Error(
-    `Usage: cli-skill ${skillName} config get [keyPath] | set <keyPath> <value> | unset <keyPath>`,
-  );
-}
-
-async function handleSkillCommand(skillName: string, args: string[] = []): Promise<void> {
-  if (args.length === 0) {
-    printSkillUsage(skillName);
-  }
-
-  const [subcommand, ...rest] = args;
-  const resolved = await resolveSkillProject(skillName);
-
-  if (subcommand === "run" || subcommand === "list") {
+  cli.command("tools", "List tools in the current cli skill project").action(async () => {
+    const resolved = await getCurrentSkillProject();
     const skill = await loadSkillDefinition(resolved.projectPath);
-    const exitCode = await runCli(
-      skill,
-      subcommand === "list" ? ["list"] : ["run", ...rest],
-      { rootDir: resolved.projectPath },
-    );
+    const exitCode = await runCli(skill, ["list"], { rootDir: resolved.projectPath });
     process.exitCode = exitCode;
-    return;
-  }
+  });
 
-  if (subcommand === "config") {
-    await handleSkillConfig(skillName, rest);
-    return;
-  }
+  cli
+    .command("run <toolName> [rawInput]", "Run a tool in the current cli skill project")
+    .action(async (toolName: string, rawInput?: string) => {
+      const resolved = await getCurrentSkillProject();
+      const skill = await loadSkillDefinition(resolved.projectPath);
+      const exitCode = await runCli(skill, ["run", toolName, ...(typeof rawInput === "string" ? [rawInput] : [])], {
+        rootDir: resolved.projectPath,
+      });
+      process.exitCode = exitCode;
+    });
 
-  if (subcommand === "mount") {
-    const [targetPath] = rest;
-    const mountedPath = await mountSkillProject(resolved.projectPath, { skillRoot: targetPath });
-    console.log(mountedPath);
-    return;
-  }
-
-  if (subcommand === "unmount") {
-    const [targetPath] = rest;
-    const mountedPath = await unmountSkillProject(resolved.projectPath, { skillRoot: targetPath });
-    console.log(mountedPath);
-    return;
-  }
-
-  if (subcommand === "build") {
+  cli.command("build", "Generate skill artifacts for the current cli skill project").action(async () => {
+    const resolved = await getCurrentSkillProject();
     const skill = await loadSkillDefinition(resolved.projectPath);
     const updatedPath = await writeSkillDocsMarkdown(skill);
     console.log(updatedPath);
-    return;
-  }
+  });
 
-  if (subcommand === "publish") {
-    const localProjectDir = await getLocalSkillProjectDir(skillName);
-    const publishArgs = ["publish"];
-    const dryRunIndex = rest.indexOf("--dry-run");
-    const tagIndex = rest.indexOf("--tag");
+  cli.command("mount [targetPath]", "Mount the current cli skill project for agents").action(async (targetPath?: string) => {
+    const resolved = await getCurrentSkillProject();
+    const skill = await loadSkillDefinition(resolved.projectPath);
+    await writeSkillDocsMarkdown(skill);
+    const mountedPath = await mountSkillProject(resolved.projectPath, { skillRoot: targetPath });
+    console.log(mountedPath);
+  });
 
-    if (dryRunIndex >= 0) {
-      publishArgs.push("--dry-run");
-    }
+  cli.command("unmount [targetPath]", "Unmount the current cli skill project for agents").action(async (targetPath?: string) => {
+    const resolved = await getCurrentSkillProject();
+    const mountedPath = await unmountSkillProject(resolved.projectPath, { skillRoot: targetPath });
+    console.log(mountedPath);
+  });
 
-    if (tagIndex >= 0) {
-      const tag = rest[tagIndex + 1];
-      if (!tag) {
-        throw new Error(`Usage: cli-skill ${skillName} publish [--dry-run] [--tag <tag>]`);
-      }
-      publishArgs.push("--tag", tag);
-    }
-
-    await runBun(publishArgs, localProjectDir);
-    return;
-  }
-
-  printSkillUsage(skillName);
-}
-
-export function registerSkillCommand(cli: CAC): void {
   cli
-    .command("<skillName> [...args]", "Operate on a specific cli skill")
-    .allowUnknownOptions()
-    .action(async (skillName: string, args: string[] = []) => {
-      await handleSkillCommand(skillName, args);
+    .command("publish", "Publish the current cli skill project")
+    .option("--dry-run", "Run publish without uploading")
+    .option("--tag <tag>", "Publish under a specific dist-tag")
+    .action(async (options: { dryRun?: boolean; tag?: string }) => {
+      const resolved = await getCurrentSkillProject();
+      const skill = await loadSkillDefinition(resolved.projectPath);
+      await writeSkillDocsMarkdown(skill);
+
+      const publishArgs = ["publish"];
+      if (options.dryRun) {
+        publishArgs.push("--dry-run");
+      }
+      if (options.tag) {
+        publishArgs.push("--tag", options.tag);
+      }
+
+      await runBunStreaming(publishArgs, resolved.projectPath);
     });
 }

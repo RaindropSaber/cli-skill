@@ -7,8 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "bun install && bun run build",
-    "build": "bun run --workspaces build",
+    "bootstrap": "bun install",
     "test": "bun run --workspaces test",
     "release": "bun ./scripts/release.ts"
   },
@@ -16,6 +15,6 @@
     "bun-types": "^1.3.11",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.0.10",
-    "typescript": "^5.9.2"
+    "typescript": "6.0.2"
   }
 }

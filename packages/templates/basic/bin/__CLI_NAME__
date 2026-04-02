@@ -2,7 +2,15 @@
 
 import { spawn } from "node:child_process";
 
-const child = spawn("cli-skill", ["__SKILL_NAME__", ...process.argv.slice(2)], {
+const forwardedArgs = process.argv.slice(2);
+const commandArgs =
+  forwardedArgs[0] === "list"
+    ? ["tools"]
+    : forwardedArgs[0] === "run"
+      ? ["exec", "__SKILL_NAME__", ...forwardedArgs.slice(1)]
+      : ["exec", "__SKILL_NAME__", ...forwardedArgs];
+
+const child = spawn("cli-skill", commandArgs, {
   stdio: "inherit",
   env: process.env,
 });

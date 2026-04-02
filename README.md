@@ -14,8 +14,8 @@
 
 - `@cli-skill/cli`
   - 创建 skill 项目
-  - 管理 skill
-  - 构建产物
+  - 维护本地 skill 注册表
+  - 构建 `skill/` 产物
   - 安装、挂载和发布 skill
 - `@cli-skill/core`
   - `defineSkill`
@@ -52,11 +52,11 @@
 执行入口：
 
 - skill 自己的 bin
-- `cli-skill <skillName> ...`
+- `cli-skill exec <skillName> ...`
 
 ## 命令模型
 
-`cli-skill` 有两层命令。
+`cli-skill` 有三类命令。
 
 平台命令：
 
@@ -67,21 +67,25 @@
 - `cli-skill config get [keyPath]`
 - `cli-skill config set <keyPath> <value>`
 
-skill 作用域命令：
+当前目录命令：
 
-- `cli-skill <skillName> list`
-- `cli-skill <skillName> run <toolName> [rawInput]`
-- `cli-skill <skillName> config get [keyPath]`
-- `cli-skill <skillName> config set <keyPath> <value>`
-- `cli-skill <skillName> config unset <keyPath>`
-- `cli-skill <skillName> mount [targetPath]`
-- `cli-skill <skillName> unmount [targetPath]`
-- `cli-skill <skillName> build`
-- `cli-skill <skillName> publish [--dry-run] [--tag <tag>]`
+- `cli-skill tools`
+- `cli-skill run <toolName> [rawInput]`
+- `cli-skill config get [keyPath]`
+- `cli-skill config set <keyPath> <value>`
+- `cli-skill config unset <keyPath>`
+- `cli-skill build`
+- `cli-skill mount [targetPath]`
+- `cli-skill unmount [targetPath]`
+- `cli-skill publish [--dry-run] [--tag <tag>]`
+
+已注册 skill 执行命令：
+
+- `cli-skill exec <skillName> <toolName> [rawInput]`
 
 生成出来的 skill 仍然保留自己的 bin，但它只是一个很薄的转发层，最终仍然会进入：
 
-- `cli-skill <skillName> ...`
+- `cli-skill exec <skillName> ...`
 
 ## 架构
 
@@ -89,30 +93,33 @@ skill 作用域命令：
 flowchart LR
   A["src/index.ts"] --> B["skill 定义"]
   C["src/tools/*"] --> B
-  D["src/skill/*"] --> E["cli-skill <skillName> build"]
+  D["src/skill/*"] --> E["生成 skill/ 产物"]
   B --> E
   E --> F["skill/SKILL.md"]
   E --> G["skill/agents/openai.yaml"]
-  B --> H["cli-skill <skillName> run ..."]
+  B --> H["cli-skill run ..."]
+  B --> J["cli-skill exec <skillName> ..."]
   H --> I["plugin runtime"]
+  J --> I
 ```
 
 ## 快速开始
 
 ```bash
 cli-skill create my-skill --cli-name my-skill
-cd ~/.cli-skill/skills/my-skill
+cd ./my-skill
 bun install
-cli-skill my-skill build
-cli-skill my-skill mount
+cli-skill mount
 ```
 
 ## 目录约定
 
-- 本地 skill：
+- 当前目录创建的 skill：
+  - `./<skill-name>`
+- 已安装 skill：
   - `~/.cli-skill/skills`
-- 托管安装的 skill：
-  - `~/.cli-skill/installed`
+- skill 注册表：
+  - `~/.cli-skill/registry.json`
 - agent 默认读取目录：
   - `~/.agents/skills`
 
