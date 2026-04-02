@@ -13,12 +13,17 @@
   "scripts": {
     "prepublish": "bun run build",
     "build": "tsc -p tsconfig.json",
-    "check": "tsc --noEmit -p tsconfig.json"
+    "test": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "cac": "^6.7.14",
     "lodash": "^4.17.21",
-    "playwright": "^1.53.0",
+    "playwright": "^1.53.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
     "zod": "^3.25.76"
   }
 }

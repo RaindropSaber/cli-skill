@@ -1,0 +1,3 @@
+display_name: {{name}}
+short_description: {{description}}
+default_prompt: 使用 {{name}} 处理 {{name}} 相关任务。

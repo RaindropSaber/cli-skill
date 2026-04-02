@@ -21,6 +21,13 @@ interface InstalledSkillMetadata {
   packageSpec: string;
 }
 
+export interface ResolvedSkillProject {
+  source: "local" | "remote";
+  skillName: string;
+  packageName: string;
+  projectPath: string;
+}
+
 function installedPackageDirName(packageName: string): string {
   return packageName.replaceAll("/", "__");
 }
@@ -72,16 +79,26 @@ async function removeBins(binNames: string[]): Promise<void> {
   }
 }
 
+function getGeneratedSkillDir(projectDir: string): string {
+  return path.join(projectDir, "skill");
+}
+
 export async function setupLocalSkill(projectDir: string, options: SetupOptions = {}): Promise<string> {
   const { skillName, bins } = await ensureValidSkillProject(projectDir);
   const agentsSkillsRoot = options.skillRoot ?? (await getAgentsSkillsRoot());
   const targetPath = path.join(agentsSkillsRoot, skillName);
+  const generatedSkillDir = getGeneratedSkillDir(projectDir);
 
   await mkdir(agentsSkillsRoot, { recursive: true });
   await setupBins(projectDir, bins);
-  await ensureSymlink(path.join(projectDir, "skill"), targetPath, "dir");
+  await readFile(path.join(generatedSkillDir, "SKILL.md"), "utf8");
+  await ensureSymlink(generatedSkillDir, targetPath, "dir");
 
   return targetPath;
+}
+
+export async function mountSkillProject(projectDir: string, options: SetupOptions = {}): Promise<string> {
+  return setupLocalSkill(projectDir, options);
 }
 
 export async function removeLocalSkill(projectDir: string, options: SetupOptions = {}): Promise<string> {
@@ -93,6 +110,10 @@ export async function removeLocalSkill(projectDir: string, options: SetupOptions
   await rm(targetPath, { recursive: true, force: true });
 
   return targetPath;
+}
+
+export async function unmountSkillProject(projectDir: string, options: SetupOptions = {}): Promise<string> {
+  return removeLocalSkill(projectDir, options);
 }
 
 export async function installManagedSkill(
@@ -112,12 +133,14 @@ export async function installManagedSkill(
   const targetPath = path.join(agentsSkillsRoot, skillName);
   const installedSkillsRoot = await getInstalledSkillsRoot();
   const metadataPath = path.join(installedSkillsRoot, installedPackageDirName(packageName), ".cli-skill.json");
+  const generatedSkillDir = path.join(packageDir, "skill");
 
   await mkdir(path.dirname(metadataPath), { recursive: true });
   await writeFile(metadataPath, `${JSON.stringify({ packageName, packageSpec }, null, 2)}\n`, "utf8");
   await mkdir(agentsSkillsRoot, { recursive: true });
   await setupBins(packageDir, bins);
-  await ensureSymlink(path.join(packageDir, "skill"), targetPath, "dir");
+  await readFile(path.join(generatedSkillDir, "SKILL.md"), "utf8");
+  await ensureSymlink(generatedSkillDir, targetPath, "dir");
 
   return targetPath;
 }
@@ -216,4 +239,41 @@ export async function listBrowserSkills(): Promise<
 export async function getLocalSkillProjectDir(skillName: string): Promise<string> {
   const skillsRoot = await getDefaultSkillsRoot();
   return path.join(skillsRoot, skillName);
+}
+
+export async function resolveSkillProject(skillName: string): Promise<ResolvedSkillProject> {
+  const localProjectPath = await getLocalSkillProjectDir(skillName);
+  try {
+    const { packageName } = await ensureValidSkillProject(localProjectPath);
+    return {
+      source: "local",
+      skillName,
+      packageName,
+      projectPath: localProjectPath,
+    };
+  } catch {}
+
+  const installedSkillsRoot = await getInstalledSkillsRoot();
+  try {
+    for (const entry of await readdir(installedSkillsRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const installDir = path.join(installedSkillsRoot, entry.name);
+      const metadataPath = path.join(installDir, ".cli-skill.json");
+      try {
+        const metadata = JSON.parse(await readFile(metadataPath, "utf8")) as InstalledSkillMetadata;
+        if (getSkillNameFromPackageName(metadata.packageName) !== skillName) {
+          continue;
+        }
+
+        return {
+          source: "remote",
+          skillName,
+          packageName: metadata.packageName,
+          projectPath: path.join(installDir, "node_modules", metadata.packageName),
+        };
+      } catch {}
+    }
+  } catch {}
+
+  throw new Error(`Unknown cli skill "${skillName}".`);
 }

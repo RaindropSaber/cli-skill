@@ -1,11 +1,17 @@
 #!/usr/bin/env bun
 
-import { resolveSkillRoot, runCli } from "@cli-skill/core";
-import skill from "../src/index.ts";
+import { spawn } from "node:child_process";
 
-runCli(skill, process.argv.slice(2), { rootDir: resolveSkillRoot(import.meta.url) }).then((exitCode) => {
-  process.exitCode = exitCode;
-}).catch((error) => {
-  console.error(error);
-  process.exit(1);
+const child = spawn("cli-skill", ["__SKILL_NAME__", ...process.argv.slice(2)], {
+  stdio: "inherit",
+  env: process.env,
+});
+
+child.on("exit", (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+
+  process.exit(code ?? 0);
 });

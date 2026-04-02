@@ -18,6 +18,24 @@ export interface SkillPackageJson {
   version?: string;
 }
 
+async function importSkillDefinition(entryPath: string): Promise<SkillDefinition> {
+  const previousCwd = process.cwd();
+
+  try {
+    process.chdir(path.resolve(path.dirname(entryPath), ".."));
+    const imported = await import(pathToFileURL(entryPath).href);
+    const skill = (imported.default ?? imported.skill) as SkillDefinition | undefined;
+
+    if (!skill) {
+      throw new Error(`Cannot find exported skill definition in ${entryPath}`);
+    }
+
+    return skill;
+  } finally {
+    process.chdir(previousCwd);
+  }
+}
+
 async function getLocalCorePackageVersion(): Promise<string> {
   const corePackageJsonPath = path.join(LOCAL_CORE_PACKAGE_PATH, "package.json");
   const corePackageJson = JSON.parse(
@@ -52,9 +70,9 @@ export async function createSkillProject(
   const targetDir = path.join(resolvedTargetRoot, skillName);
   const usingLocalTemplates = await hasLocalTemplatesPackage();
   const cliPackageVersion = usingLocalTemplates ? undefined : await getCliPackageVersion();
-  const corePackageVersion = usingLocalTemplates
-    ? await getLocalCorePackageVersion()
-    : cliPackageVersion!;
+  const corePackageSpec = usingLocalTemplates
+    ? `file:${LOCAL_CORE_PACKAGE_PATH}`
+    : `@cli-skill/core@${cliPackageVersion!}`;
   const templatePackageSpec = usingLocalTemplates
     ? `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`
     : `@cli-skill/templates@${cliPackageVersion!}`;
@@ -72,8 +90,8 @@ export async function createSkillProject(
       cliName,
       "--target-dir",
       targetDir,
-      "--core-package-version",
-      corePackageVersion,
+      "--core-package-spec",
+      corePackageSpec,
     ],
     process.cwd(),
   );
@@ -105,9 +123,6 @@ export async function ensureValidSkillProject(
     throw new Error(`Missing package name in ${path.join(projectDir, "package.json")}`);
   }
 
-  const skillFilePath = path.join(projectDir, "skill", "SKILL.md");
-  await readFile(skillFilePath, "utf8");
-
   const bins =
     typeof packageJson.bin === "string"
       ? { [getSkillNameFromPackageName(packageJson.name)]: packageJson.bin }
@@ -129,24 +144,11 @@ export async function ensureValidSkillProject(
 export async function loadSkillDefinition(projectDir: string): Promise<SkillDefinition> {
   await ensureValidSkillProject(projectDir);
   const entryPath = path.join(projectDir, "src", "index.ts");
-  const previousCwd = process.cwd();
-
-  try {
-    process.chdir(projectDir);
-    const imported = await import(pathToFileURL(entryPath).href);
-    const skill = (imported.default ?? imported.skill) as SkillDefinition | undefined;
-
-    if (!skill) {
-      throw new Error(`Cannot find exported skill definition in ${entryPath}`);
-    }
-
-    return skill.rootDir
-      ? skill
-      : {
-          ...skill,
-          rootDir: projectDir,
-        };
-  } finally {
-    process.chdir(previousCwd);
-  }
+  const skill = await importSkillDefinition(entryPath);
+  return skill.rootDir
+    ? skill
+    : {
+        ...skill,
+        rootDir: projectDir,
+      };
 }

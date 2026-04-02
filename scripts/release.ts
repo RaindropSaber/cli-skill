@@ -32,7 +32,7 @@ function usage() {
     "  - git status must be clean before preparing a release commit",
     "  - do not run release on main; use a release branch or another working branch",
     "  - stable releases use the next semantic version",
-    "  - beta releases use 0.0.1-beta-<shortHash>",
+    "  - beta releases use 0.0.1-beta.<timestamp>",
     "  - the script commits version changes on the current branch",
   ].join("\n");
 }
@@ -100,8 +100,15 @@ function getCurrentBranch() {
   return run("git", ["branch", "--show-current"]);
 }
 
-function getShortHash() {
-  return run("git", ["rev-parse", "--short", "HEAD"]);
+function getTimestampVersionPart() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  const hours = String(now.getUTCHours()).padStart(2, "0");
+  const minutes = String(now.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(now.getUTCSeconds()).padStart(2, "0");
+  return `${year}${month}${day}${hours}${minutes}${seconds}`;
 }
 
 async function getCurrentVersion() {
@@ -183,12 +190,12 @@ async function main() {
   const nextVersion =
     options.channel === "stable"
       ? bumpVersion(currentVersion, options.type)
-      : `0.0.1-beta-${getShortHash()}`;
+      : `0.0.1-beta.${getTimestampVersionPart()}`;
 
   try {
     await applyVersion(nextVersion);
     run("bun", ["install", "--lockfile-only"]);
-    run("bun", ["run", "check"]);
+    run("bun", ["run", "test"]);
 
     run("git", [
       "add",

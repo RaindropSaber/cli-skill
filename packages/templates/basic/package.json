@@ -12,12 +12,12 @@
     "__SKILL_NAME__"
   ],
   "scripts": {
-    "build": "bun run check",
-    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "bun run test",
+    "test": "tsc --noEmit -p tsconfig.json",
     "cli": "bun ./bin/__CLI_NAME__"
   },
   "dependencies": {
-    "@cli-skill/core": "^__CORE_PACKAGE_VERSION__",
+    "@cli-skill/core": "__CORE_PACKAGE_SPEC__",
     "zod": "^3.25.76"
   },
   "devDependencies": {

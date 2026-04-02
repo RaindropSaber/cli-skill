@@ -15,6 +15,6 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "check": "tsc --noEmit -p tsconfig.json"
+    "test": "tsc --noEmit -p tsconfig.json"
   }
 }

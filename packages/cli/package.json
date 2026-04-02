@@ -15,11 +15,12 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "check": "tsc --noEmit -p tsconfig.json"
+    "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {
-    "@cli-skill/core": "^0.0.1-beta-16d46c3",
+    "@cli-skill/core": "workspace:*",
     "cac": "^6.7.14",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "zod": "^3.25.76"
   }
 }

@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Validate workspace
-        run: bun run check
+      - name: Test workspace
+        run: bun run test
 
       - name: Verify prerelease version
         id: verify

@@ -5,20 +5,24 @@ export {
   getResolvedBrowserSkillConfig,
   loadBrowserSkillConfig,
 } from "./config";
-export { renderSkillDocsMarkdown, writeSkillDocsMarkdown } from "./docs";
 export { resolveSkillRoot } from "./paths";
 export { createRuntime, disposeRuntime, getRuntimePaths } from "./runtime";
-export { failResult, okResult } from "./result";
-export { defineSkill, defineTool } from "./skill";
+export { browserPlugin } from "./plugins/browser";
+export type { BrowserPluginContext } from "./plugins/browser";
+export { definePlugin, defineSkill, defineTool } from "./skill";
 export type { SkillCliRunOptions, SkillCliRunner } from "./cli";
 export type {
   AnyTool,
-  BrowserSkillConfig,
+  BaseToolContext,
+  CliSkillConfig,
+  InferPluginsContext,
+  InferToolsContext,
+  PluginContext,
   SkillConfigAccessor,
   RuntimeOptions,
   RuntimePaths,
+  SkillPlugin,
   SkillDefinition,
   ToolExample,
-  ToolContext,
   ToolDefinition,
 } from "./types";

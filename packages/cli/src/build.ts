@@ -1,12 +1,7 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { type ZodRawShape, type ZodTypeAny } from "zod";
-import type { SkillDefinition } from "./types";
-
-const CONFIG_MARKER_START = "<!-- BEGIN GENERATED CONFIG -->";
-const CONFIG_MARKER_END = "<!-- END GENERATED CONFIG -->";
-const TOOLS_MARKER_START = "<!-- BEGIN GENERATED TOOLS -->";
-const TOOLS_MARKER_END = "<!-- END GENERATED TOOLS -->";
+import type { SkillDefinition } from "@cli-skill/core";
 
 interface FieldInfo {
   schema: ZodTypeAny;
@@ -191,7 +186,6 @@ function renderConfigSection(skill: SkillDefinition): string {
 
 function renderToolsSection(skill: SkillDefinition): string {
   const blocks: string[] = [];
-  const cliName = skill.cliName ?? skill.name;
 
   const toolTable = renderTable(
     ["工具", "说明"],
@@ -208,7 +202,7 @@ function renderToolsSection(skill: SkillDefinition): string {
     const exampleRows =
       tool.examples && tool.examples.length > 0
         ? tool.examples.map((example) => [example.scenario, example.command])
-        : [["默认调用", `${cliName} run ${tool.name} '<json-input>'`]];
+        : [["默认调用", `${skill.name} run ${tool.name} '<json-input>'`]];
     blocks.push(renderTable(["场景", "命令"], exampleRows));
     blocks.push("");
     blocks.push("**输入**");
@@ -233,42 +227,145 @@ function renderToolsSection(skill: SkillDefinition): string {
   return blocks.join("\n");
 }
 
-function replaceSection(content: string, startMarker: string, endMarker: string, replacement: string): string {
-  const start = content.indexOf(startMarker);
-  const end = content.indexOf(endMarker);
-
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error(`Missing markers: ${startMarker} ... ${endMarker}`);
-  }
-
-  const before = content.slice(0, start + startMarker.length);
-  const after = content.slice(end);
-  return `${before}\n${replacement}\n${after}`;
-}
-
-export function renderSkillDocsMarkdown(skill: SkillDefinition): string {
+function getDefaultSkillDocsMarkdown(): string {
   return [
+    "---",
+    `name: {{name}}`,
+    `description: {{description}}`,
+    "---",
+    "",
+    `# {{name}}`,
+    "",
+    "## 概述",
+    "",
+    "{{overview}}",
+    "",
     "## Tool Reference",
     "",
-    renderToolsSection(skill),
+    "{{toolReference}}",
     "",
     "## Config Reference",
     "",
-    renderConfigSection(skill),
+    "{{configReference}}",
   ].join("\n");
+}
+
+function getDefaultOpenAIYamlTemplate(): string {
+  return [
+    "display_name: {{name}}",
+    "short_description: {{description}}",
+    "default_prompt: 使用 {{name}} 处理 {{name}} 相关任务。",
+    "",
+  ].join("\n");
+}
+
+function buildTemplateValues(skill: SkillDefinition): Record<string, string> {
+  return {
+    name: skill.name,
+    description: skill.description,
+    overview: skill.overview ?? `${skill.name} skill。`,
+    toolReference: renderToolsSection(skill),
+    configReference: renderConfigSection(skill),
+  };
+}
+
+function renderSkillTemplate(template: string, skill: SkillDefinition): string {
+  const values = buildTemplateValues(skill);
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, key: string) => values[key] ?? "");
+}
+
+function isTemplatedTextFile(filePath: string): boolean {
+  return [".md", ".yaml", ".yml"].includes(path.extname(filePath));
+}
+
+async function copySkillTemplateDirectory(sourceDir: string, targetDir: string, skill: SkillDefinition): Promise<void> {
+  const entries = await readdir(sourceDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+
+    if (entry.isDirectory()) {
+      await mkdir(targetPath, { recursive: true });
+      await copySkillTemplateDirectory(sourcePath, targetPath, skill);
+      continue;
+    }
+
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    const template = await readFile(sourcePath, "utf8");
+    const content = isTemplatedTextFile(sourcePath)
+      ? renderSkillTemplate(template, skill)
+      : template;
+    await writeFile(targetPath, `${content}${content.endsWith("\n") ? "" : "\n"}`, "utf8");
+  }
+}
+
+async function getLegacySkillDocsTemplate(skill: SkillDefinition): Promise<string | null> {
+  const skillRoot = skill.rootDir ?? process.cwd();
+  const templatePath = path.join(skillRoot, "src", "skill.md");
+
+  try {
+    return await readFile(templatePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+async function getSkillTemplateDirectory(skill: SkillDefinition): Promise<string | null> {
+  const skillRoot = skill.rootDir ?? process.cwd();
+  const templateDir = path.join(skillRoot, "src", "skill");
+
+  try {
+    const templateStat = await stat(templateDir);
+    return templateStat.isDirectory() ? templateDir : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getSkillDocsTemplateFromDirectory(skill: SkillDefinition): Promise<string | null> {
+  const templateDir = await getSkillTemplateDirectory(skill);
+  if (!templateDir) {
+    return null;
+  }
+
+  try {
+    return await readFile(path.join(templateDir, "SKILL.md"), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+export async function renderSkillDocsMarkdown(skill: SkillDefinition): Promise<string> {
+  const directoryTemplate = await getSkillDocsTemplateFromDirectory(skill);
+  const legacyTemplate = directoryTemplate ? null : await getLegacySkillDocsTemplate(skill);
+  return renderSkillTemplate(directoryTemplate ?? legacyTemplate ?? getDefaultSkillDocsMarkdown(), skill);
+}
+
+export function renderSkillOpenAIYaml(skill: SkillDefinition): string {
+  return renderSkillTemplate(getDefaultOpenAIYamlTemplate(), skill);
 }
 
 export async function writeSkillDocsMarkdown(skill: SkillDefinition): Promise<string> {
   const skillRoot = skill.rootDir ?? process.cwd();
-  const skillMdPath = path.join(skillRoot, "skill", "SKILL.md");
-  const current = await readFile(skillMdPath, "utf8");
-  const next = replaceSection(
-    replaceSection(current, CONFIG_MARKER_START, CONFIG_MARKER_END, renderConfigSection(skill)),
-    TOOLS_MARKER_START,
-    TOOLS_MARKER_END,
-    renderToolsSection(skill),
-  );
+  const targetDir = path.join(skillRoot, "skill");
+  const skillMdPath = path.join(targetDir, "SKILL.md");
+  const templateDir = await getSkillTemplateDirectory(skill);
 
-  await writeFile(skillMdPath, next, "utf8");
+  await mkdir(targetDir, { recursive: true });
+
+  if (templateDir) {
+    await copySkillTemplateDirectory(templateDir, targetDir, skill);
+  } else {
+    const skillMarkdown = await renderSkillDocsMarkdown(skill);
+    const openAIYamlPath = path.join(targetDir, "agents", "openai.yaml");
+    await mkdir(path.dirname(openAIYamlPath), { recursive: true });
+    await writeFile(skillMdPath, `${skillMarkdown}\n`, "utf8");
+    await writeFile(openAIYamlPath, renderSkillOpenAIYaml(skill), "utf8");
+  }
+
   return skillMdPath;
 }

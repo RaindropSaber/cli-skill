@@ -6,7 +6,7 @@ interface CreateSkillProjectOptions {
   skillName: string;
   cliName: string;
   targetDir: string;
-  corePackageVersion: string;
+  corePackageSpec: string;
 }
 
 function toPackageName(skillName: string): string {
@@ -17,7 +17,7 @@ function render(template: string, options: CreateSkillProjectOptions): string {
   return template
     .replaceAll("__SKILL_NAME__", options.skillName)
     .replaceAll("__CLI_NAME__", options.cliName)
-    .replaceAll("__CORE_PACKAGE_VERSION__", options.corePackageVersion)
+    .replaceAll("__CORE_PACKAGE_SPEC__", options.corePackageSpec)
     .replaceAll("__PACKAGE_NAME__", toPackageName(options.skillName));
 }
 
