@@ -1,7 +1,7 @@
 {
   "name": "cli-skill",
   "private": true,
-  "version": "0.0.1-beta.20260402144206",
+  "version": "0.0.2-beta.20260402144637",
   "packageManager": "bun@1.3.11",
   "workspaces": [
     "packages/*"
