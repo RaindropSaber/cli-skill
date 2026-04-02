@@ -1,5 +1,6 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -16,6 +17,33 @@ export async function runBun(
       ...process.env,
       ...envOverrides,
     },
+  });
+}
+
+export async function runBunStreaming(
+  args: string[],
+  cwd?: string,
+  envOverrides?: Record<string, string | undefined>,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("bun", args, {
+      cwd,
+      env: {
+        ...process.env,
+        ...envOverrides,
+      },
+      stdio: "inherit",
+    });
+
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`bun ${args.join(" ")} failed with code ${code ?? "null"}${signal ? ` signal ${signal}` : ""}`));
+    });
   });
 }
 
@@ -36,7 +64,9 @@ export async function runBunAndCapture(args: string[], cwd?: string): Promise<st
 }
 
 export async function getBunGlobalBinDir(): Promise<string> {
-  return runBunAndCapture(["pm", "bin", "-g"]);
+  const home = process.env.HOME || os.homedir();
+  const bunInstall = process.env.BUN_INSTALL || path.join(home, ".bun");
+  return path.join(bunInstall, "bin");
 }
 
 export async function installPackageToDirectory(packageSpec: string, installDir: string): Promise<void> {

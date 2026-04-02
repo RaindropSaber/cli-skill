@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import get from "lodash/get";
 import set from "lodash/set";
+import unset from "lodash/unset";
 import os from "node:os";
 import path from "node:path";
 
@@ -11,20 +12,24 @@ export interface BrowserSkillCliConfig {
   skillConfig?: Record<string, Record<string, unknown>>;
 }
 
+function getUserHome(): string {
+  return process.env.HOME || os.homedir();
+}
+
 function resolveUserPath(inputPath: string): string {
   if (inputPath === "~") {
-    return os.homedir();
+    return getUserHome();
   }
 
   if (inputPath.startsWith("~/")) {
-    return path.join(os.homedir(), inputPath.slice(2));
+    return path.join(getUserHome(), inputPath.slice(2));
   }
 
   return inputPath;
 }
 
 export function getBrowserSkillHome(): string {
-  return path.join(os.homedir(), ".cli-skill");
+  return path.join(getUserHome(), ".cli-skill");
 }
 
 export function getBrowserSkillConfigPath(): string {
@@ -46,7 +51,7 @@ export function getDefaultBrowserSkillCliConfig(): Required<
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
     installedSkillsRoot: path.join(getBrowserSkillHome(), "installed"),
-    agentsSkillsRoot: path.join(os.homedir(), ".agents", "skills"),
+    agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
     skillConfig: {},
   };
 }
@@ -114,6 +119,15 @@ export function setConfigValue(
 ): BrowserSkillCliConfig {
   const nextConfig = structuredClone(config);
   set(nextConfig as object, keyPath, value);
+  return nextConfig;
+}
+
+export function unsetConfigValue(
+  config: BrowserSkillCliConfig,
+  keyPath: string,
+): BrowserSkillCliConfig {
+  const nextConfig = structuredClone(config);
+  unset(nextConfig as object, keyPath);
   return nextConfig;
 }
 

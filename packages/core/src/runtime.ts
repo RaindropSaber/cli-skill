@@ -3,10 +3,19 @@ import { constants as fsConstants } from "node:fs";
 import get from "lodash/get";
 import set from "lodash/set";
 import path from "node:path";
-import { chromium } from "playwright";
 import { z } from "zod";
 import { getResolvedBrowserSkillConfig } from "./config";
-import type { RuntimeOptions, RuntimePaths, SkillConfigAccessor, ToolContext } from "./types";
+import type {
+  AnySkill,
+  BaseToolContext,
+  InferToolsContext,
+  RuntimeOptions,
+  RuntimePaths,
+  SkillConfigAccessor,
+  SkillPlugin,
+} from "./types";
+
+const pluginCleanup = new WeakMap<object, Array<() => Promise<void>>>();
 
 export function getRuntimePaths(storageRoot = path.join(process.cwd(), "storage")): RuntimePaths {
   return {
@@ -57,17 +66,61 @@ async function getCurrentSkillName(cwd = process.cwd()): Promise<string | null> 
   }
 }
 
-export async function createRuntime(options: RuntimeOptions = {}): Promise<ToolContext> {
-  const config = await getResolvedBrowserSkillConfig();
+async function setupPlugins(
+  plugins: readonly SkillPlugin<any>[],
+  ctx: BaseToolContext,
+  options: RuntimeOptions,
+  skill: AnySkill,
+) {
+  const globalConfig = await getResolvedBrowserSkillConfig();
+  const cleanupHandlers: Array<() => Promise<void>> = [];
+
+  for (const plugin of plugins) {
+    const pluginContext = await plugin.setup(ctx, {
+      headed: options.headed,
+      storageRoot: options.storageRoot,
+      storageStatePath: options.storageStatePath,
+      skill,
+      globalConfig,
+    });
+
+    Object.assign(ctx, pluginContext);
+
+    if (plugin.dispose) {
+      cleanupHandlers.unshift(async () => {
+        await plugin.dispose?.(ctx as BaseToolContext & object);
+      });
+    }
+  }
+
+  pluginCleanup.set(ctx as object, cleanupHandlers);
+}
+
+function collectPlugins(skill: AnySkill): SkillPlugin<any>[] {
+  const plugins = new Map<string, SkillPlugin<any>>();
+
+  for (const tool of skill.tools) {
+    for (const plugin of tool.plugins ?? []) {
+      plugins.set(plugin.name, plugin);
+    }
+  }
+
+  return [...plugins.values()];
+}
+
+export async function createRuntime<Skill extends AnySkill = AnySkill>(
+  options: RuntimeOptions<Skill> = {},
+): Promise<BaseToolContext & InferToolsContext<Skill["tools"]>> {
+  const globalConfig = await getResolvedBrowserSkillConfig();
   const skillName = options.skill?.name ?? (await getCurrentSkillName());
-  const skillConfig = skillName ? config.skills?.[skillName] : undefined;
+  const skillConfig = skillName ? globalConfig.skills?.[skillName] : undefined;
   const env = {
-    ...(config.env ?? {}),
+    ...(globalConfig.env ?? {}),
     ...(skillConfig?.env ?? {}),
   };
   const resolvedSkillConfig =
     options.skill?.config
-      ? z.object(options.skill.config).parse(config.skillConfig?.[skillName ?? ""] ?? {})
+      ? z.object(options.skill.config).parse(globalConfig.skillConfig?.[skillName ?? ""] ?? {})
       : {};
   const configAccessor = createSkillConfigAccessor(resolvedSkillConfig);
   const defaultStorageRoot =
@@ -79,17 +132,7 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<ToolC
   await mkdir(paths.screenshotsDir, { recursive: true });
   await mkdir(paths.tracesDir, { recursive: true });
 
-  const storageState = (await fileExists(storageStatePath)) ? storageStatePath : undefined;
-
-  const browser = await chromium.launch({ headless: options.headed !== true });
-  const context = await browser.newContext({ storageState });
-  const page = await context.newPage();
-
-  return {
-    browser,
-    context,
-    page,
-    request: context.request,
+  const ctx: BaseToolContext = {
     skill: {
       name: skillName ?? "unknown-skill",
     },
@@ -98,10 +141,20 @@ export async function createRuntime(options: RuntimeOptions = {}): Promise<ToolC
     paths,
     storageStatePath,
   };
+
+  const plugins = options.skill ? collectPlugins(options.skill) : [];
+
+  if (plugins.length > 0 && options.skill) {
+    await setupPlugins(plugins, ctx, options, options.skill);
+  }
+
+  return ctx as BaseToolContext & InferToolsContext<Skill["tools"]>;
 }
 
-export async function disposeRuntime(ctx: ToolContext): Promise<void> {
-  await ctx.context.storageState({ path: ctx.storageStatePath });
-  await ctx.context.close();
-  await ctx.browser.close();
+export async function disposeRuntime(ctx: BaseToolContext): Promise<void> {
+  const handlers = pluginCleanup.get(ctx as object) ?? [];
+  for (const handler of handlers) {
+    await handler();
+  }
+  pluginCleanup.delete(ctx as object);
 }

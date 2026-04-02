@@ -2,7 +2,7 @@
   "name": "__PACKAGE_NAME__",
   "version": "0.1.0",
   "type": "module",
-  "packageManager": "bun@1.3.5",
+  "packageManager": "bun@1.3.11",
   "main": "./src/index.ts",
   "bin": {
     "__CLI_NAME__": "./bin/__CLI_NAME__"
@@ -12,17 +12,17 @@
     "__SKILL_NAME__"
   ],
   "scripts": {
-    "build": "bun run check",
-    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "bun run test",
+    "test": "tsc --noEmit -p tsconfig.json",
     "cli": "bun ./bin/__CLI_NAME__"
   },
   "dependencies": {
-    "@cli-skill/core": "^__CORE_PACKAGE_VERSION__",
-    "zod": "^3.25.76"
+    "@cli-skill/core": "__CORE_PACKAGE_SPEC__",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^24.0.10",
-    "typescript": "^5.9.2"
+    "typescript": "6.0.2"
   },
   "cliSkill": true
 }

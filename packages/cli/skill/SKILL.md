@@ -1,106 +1,173 @@
 ---
 name: cli-skill-creator
-description: 当需要创建、接通、安装或维护 cli skill 时，使用 cli-skill CLI 完成标准流程。
+description: 当任务涉及 cli skill 的创建、挂载、安装、发布或配置时，使用 cli-skill CLI。
 ---
 
 # cli-skill-creator
 
-当用户要创建一个新的 cli skill，接通本地开发中的 skill，安装一个已发布的 skill，或者维护 cli-skill 的全局配置时，使用这个 skill。
+这个 skill 面向的是：需要创建、修改、接通、安装或发布 cli skill 的任务。
 
-## 何时使用
+如果需要查看 skill 源码结构和 core API 参考，继续看：
 
-- 用户说“创建一个 cli skill”
-- 用户要把一个本地 skill 接成可直接执行的 CLI
-- 用户要安装或卸载一个已发布的 cli skill
-- 用户要查看或修改 `~/.cli-skill/config.json`
-- 用户要更新某个 skill 的 `SKILL.md` 中的 Tool / Config 文档区块
+- [references/core.md](/Users/bin.jia1/work/github/cli-skill/packages/cli/skill/references/core.md)
+
+## 使用时机
+
+- 创建新的 cli skill
+- 修改已有 skill
+- 构建 `skill/` 产物
+- 把本地 skill 接到 agent 目录
+- 安装或卸载已发布 skill
+- 发布本地 skill
+- 读写 cli-skill 配置
+
+## 工作模型
+
+处理 cli skill 时，默认按三类命令来理解：
+
+- 平台命令
+  - `cli-skill create`
+  - `cli-skill list`
+  - `cli-skill tools <skill-name>`
+  - `cli-skill install`
+  - `cli-skill uninstall`
+  - `cli-skill config ...`
+- 当前目录命令
+  - `cli-skill tools`
+  - `cli-skill run`
+  - `cli-skill build`
+  - `cli-skill mount`
+  - `cli-skill publish`
+- 已注册 skill 执行命令
+  - `cli-skill exec <skill-name> ...`
+
+skill 自己的 bin 只是一个转发入口：
+
+- `skill-name list`
+  - 查看这个 skill 的 tools
+- `skill-name <tool>`
+  - 执行这个 skill 的 tool
+
+项目级命令仍然通过 `cli-skill` 使用，不通过 skill bin 使用。
 
 ## 默认流程
 
-如果用户要新建一个 skill，默认按下面顺序执行：
+当用户要新建一个 skill 时，默认流程是：
 
 ```bash
 cli-skill create <skill-name> --cli-name <cli-name>
+cd ./<skill-name>
 bun install
-cli-skill enable <skill-name>
-cli-skill sync-skill --write
+cli-skill build
+cli-skill mount
 ```
 
-如果用户没有指定 `cli-name`，默认令它等于 `skill-name`。
+如果没有提供 `cli-name`，默认令它等于 `skill-name`。
 
-## 命令对照
+## 项目结构
+
+默认 skill 项目结构：
+
+- `src/index.ts`
+- `src/tools/*`
+- `src/skill/*`
+
+含义：
+
+- `src/index.ts`
+  - skill 定义入口
+- `src/tools/*`
+  - tool 源码
+- `src/skill/*`
+  - 文档模板源目录
+
+执行 `cli-skill build` 会生成：
+
+- `skill/SKILL.md`
+- `skill/agents/openai.yaml`
+
+## 常用命令
 
 | 场景 | 命令 |
 | --- | --- |
 | 创建 skill | `cli-skill create <skill-name> --cli-name <cli-name> [--template <templateName>]` |
-| 激活本地 skill | `cli-skill enable <skill-name> [--agentPath <path>]` |
-| 取消激活本地 skill | `cli-skill disable <skill-name> [--agentPath <path>]` |
+| 查看 skill 列表 | `cli-skill list` |
+| 查看已注册 skill 的 tool 列表 | `cli-skill tools <skill-name>` |
 | 安装已发布 skill | `cli-skill install <skill-name>` |
 | 卸载已发布 skill | `cli-skill uninstall <package-name>` |
-| 发布本地 skill | `cli-skill publish <skill-name> [--dry-run]` |
-| 查看 skill 列表 | `cli-skill list` |
-| 同步 skill 文档 | 在 skill 根目录执行 `cli-skill sync-skill --write` |
-| 读取配置 | `cli-skill config get [keyPath]` |
-| 写入配置 | `cli-skill config set <keyPath> <value>` |
+| 查看 tool 列表 | `cli-skill tools` |
+| 运行当前目录 tool | `cli-skill run <tool-name> [rawInput]` |
+| 运行已注册 skill 的 tool | `cli-skill exec <skill-name> <tool-name> [rawInput]` |
+| 读取当前 skill 配置 | `cli-skill config get [keyPath]` |
+| 写入当前 skill 配置 | `cli-skill config set <keyPath> <value>` |
+| 删除当前 skill 配置 | `cli-skill config unset <keyPath>` |
+| 挂载当前 skill | `cli-skill mount [targetPath]` |
+| 取消挂载当前 skill | `cli-skill unmount [targetPath]` |
+| 构建 skill 产物 | `cli-skill build` |
+| 发布当前 skill | `cli-skill publish [--dry-run] [--tag <tag>]` |
+| 读取全局配置 | `cli-skill config get [keyPath]` |
+| 写入全局配置 | `cli-skill config set <keyPath> <value>` |
 
 ## 关键规则
 
-- `create` 会通过 `bunx` 调 templates 包创建 skill 项目。
-- 默认模板名是 `basic`，对应 templates 包里的内置基础模板。
-- `create` 只创建项目，不会自动执行 `bun install`，也不会自动注册 CLI。
-- `enable` 只做两件事：
-  - 把目标 skill 的 bin 接到 Bun 全局 bin
-  - 把目标 skill 的 `./skill` 注册到目标 skill 目录，默认是 `~/.agents/skills/<skill-name>`
-- `enable` / `disable` 都通过 `skill-name` 到 `~/.cli-skill/skills/<skill-name>` 查找本地 skill 项目
-- `install` / `uninstall` 面向已发布或已打包的 skill：
-  - `install` 会把 skill 安装到 `~/.cli-skill/installed`
-  - 同时把 bin 接到 Bun 全局 bin
-  - 同时把 `skill/` 注册到目标 skill 目录，默认是 `~/.agents/skills/<skill-name>`
-- `install <skill-name>` 会先按 skill 名去 npm search API 查找：
-  - 搜索条件包含 `cli-skill` 和 `<skill-name>`
-  - 只有唯一命中时才会安装
-- `install <skill-name> --packageName <package-name>` 会直接按显式包名安装
-- `i` 是 `install` 的简写
-- `publish <skill-name>` 会从 `~/.cli-skill/skills/<skill-name>` 找到本地 skill 项目，并执行 `bun publish`
-- skill 项目默认创建在：
+- `create` 只创建项目，不会自动安装依赖，也不会自动挂载。
+- `build` 负责把 `src/skill/*` 渲染成根目录 `skill/*`。
+- `mount` 负责：
+  - 接通 skill 的 bin
+  - 注册根目录 `skill/` 到 agent 目录
+- `mount` 不应隐式执行 `install`。
+- `install` / `uninstall` 面向已发布 skill。
+- `publish` 只针对当前目录的本地 skill。
+- skill bin 只负责：
+  - `list`
+  - 直接执行 tool
+  - `config get/set/unset`
+
+默认目录：
+
+- 当前目录创建的 skill：
+  - `./<skill-name>`
+- 已安装 skill：
   - `~/.cli-skill/skills/<skill-name>`
-- 托管安装的 skill 默认放在：
-  - `~/.cli-skill/installed`
-- agent 读取 skill 的目录默认是：
+- 本地注册表：
+  - `~/.cli-skill/registry.json`
+- agent 默认目录：
   - `~/.agents/skills/<skill-name>`
-- 包名可以带 `cli-skill-` 前缀，但 agent 使用的 skill 名不带这个前缀。
-- 如果用户只是要修改某个已有 skill，不要重新 `create`，直接进入现有 skill 目录工作。
 
-## 配置规则
+## 配置
 
-- 全局配置文件是：
-  - `~/.cli-skill/config.json`
-- 通过下面命令读写：
+全局配置文件：
+
+- `~/.cli-skill/config.json`
+
+skill 作用域配置路径：
+
+- `skillConfig.<skill-name>`
+
+常见命令：
 
 ```bash
 cli-skill config get
-cli-skill config get skillConfig.fx
-cli-skill config set skillConfig.fx.baseUrl https://example.com
+cli-skill config set skillsRoot ~/.cli-skill/skills
+cd ./<skill-name>
+cli-skill config get
+cli-skill config set baseUrl https://example.com
 ```
 
-- `get` / `set` 支持点路径，如：
-  - `skillConfig.fx.baseUrl`
-  - `skillConfig.fx.env.TEST_VALUE`
+## 文档规则
 
-## 文档同步规则
-
-- skill 的 `SKILL.md` 里，`Tool Reference` 和 `Config Reference` 应由平台命令生成。
-- 当工具或配置发生变化后，优先执行：
+- `src/skill/*` 是模板源目录
+- `skill/*` 是生成产物
+- tool 或配置变更后，应重新执行：
 
 ```bash
-cli-skill sync-skill --write
+cli-skill build
 ```
-
-- 不要手写维护这两个生成区块，除非用户明确要求。
 
 ## 不要做的事
 
 - 不要把 `create` 当成“已经可执行”
-- 不要让 `enable` 隐式执行 `install`
-- 不要手动改 `~/.agents/skills`，优先通过 `cli-skill` CLI 管理
-- 不要把测试 skill 长期留在工作区；测试时统一使用 `test-skill-1`、`test-skill-2` 这类名字
+- 不要手动改 `~/.agents/skills`
+- 不要把 skill bin 当成独立平台
+- 不要期待 skill bin 提供 `build` / `mount` / `publish`
+- 不要在修改已有 skill 时重新 `create`

@@ -1,6 +1,6 @@
 import type { CAC } from "cac";
 import os from "node:os";
-import { listBrowserSkills } from "../registry";
+import { listRegisteredSkills } from "../registry";
 
 function pad(value: string, width: number): string {
   return value.padEnd(width, " ");
@@ -21,54 +21,49 @@ function formatPath(value: string): string {
 
 export function registerListCommand(cli: CAC): void {
   cli.command("list", "List local and installed cli skills").action(async () => {
-    const skills = await listBrowserSkills();
+    const skills = await listRegisteredSkills();
     if (skills.length === 0) {
       console.log("无");
       return;
     }
 
     const rows = skills.map((skill) => ({
-      skillName: skill.skillName,
-      source: skill.source === "local" ? "local" : "remote",
+      name: skill.skillName,
       packageName: skill.packageName,
-      active: skill.active ? "yes" : "no",
-      agentPaths: `[${skill.agentPaths.map((agentPath) => formatPath(agentPath)).join(", ")}]`,
+      source: skill.source,
+      mounted: `[${skill.agentPaths.map((agentPath) => formatPath(agentPath)).join(", ")}]`,
     }));
 
     const headers = {
-      skillName: "Skill",
-      source: "Source",
+      name: "Name",
       packageName: "Package",
-      active: "Active",
-      agentPaths: "AgentPaths",
+      source: "Source",
+      mounted: "MountPaths",
     };
 
     const widths = {
-      skillName: Math.max(headers.skillName.length, ...rows.map((row) => row.skillName.length)),
-      source: Math.max(headers.source.length, ...rows.map((row) => row.source.length)),
+      name: Math.max(headers.name.length, ...rows.map((row) => row.name.length)),
       packageName: Math.max(headers.packageName.length, ...rows.map((row) => row.packageName.length)),
-      active: Math.max(headers.active.length, ...rows.map((row) => row.active.length)),
-      agentPaths: Math.max(headers.agentPaths.length, ...rows.map((row) => row.agentPaths.length)),
+      source: Math.max(headers.source.length, ...rows.map((row) => row.source.length)),
+      mounted: Math.max(headers.mounted.length, ...rows.map((row) => row.mounted.length)),
     };
 
     console.log(
       [
-        pad(headers.skillName, widths.skillName),
-        pad(headers.source, widths.source),
+        pad(headers.name, widths.name),
         pad(headers.packageName, widths.packageName),
-        pad(headers.active, widths.active),
-        headers.agentPaths,
+        pad(headers.source, widths.source),
+        headers.mounted,
       ].join("  "),
     );
 
     for (const row of rows) {
       console.log(
         [
-          pad(row.skillName, widths.skillName),
-          pad(row.source, widths.source),
+          pad(row.name, widths.name),
           pad(row.packageName, widths.packageName),
-          pad(row.active, widths.active),
-          row.agentPaths,
+          pad(row.source, widths.source),
+          row.mounted,
         ].join("  "),
       );
     }

@@ -1,11 +1,94 @@
 #!/usr/bin/env bun
 
-import { resolveSkillRoot, runCli } from "@cli-skill/core";
-import skill from "../src/index.ts";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-runCli(skill, process.argv.slice(2), { rootDir: resolveSkillRoot(import.meta.url) }).then((exitCode) => {
-  process.exitCode = exitCode;
-}).catch((error) => {
-  console.error(error);
+const forwardedArgs = process.argv.slice(2);
+const blockedCommands = new Set(["build", "mount", "unmount", "publish"]);
+
+function getVersion(): string {
+  const binDir = path.dirname(fileURLToPath(import.meta.url));
+  const packageJsonPath = path.join(binDir, "..", "package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: string };
+  return packageJson.version ?? "0.0.0";
+}
+
+function isCurrentSkillProject(): boolean {
+  try {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      name?: string;
+      cliSkill?: unknown;
+    };
+
+    if (!packageJson.cliSkill || !packageJson.name) {
+      return false;
+    }
+
+    const skillName = packageJson.name.split("/").at(-1) ?? packageJson.name;
+    return skillName === "__SKILL_NAME__" || skillName === "cli-skill-__SKILL_NAME__";
+  } catch {
+    return false;
+  }
+}
+
+function printHelp(): void {
+  console.log(`__CLI_NAME__ ${getVersion()}
+
+Usage:
+  __CLI_NAME__ <tool> [rawInput]
+  __CLI_NAME__ run <tool> [rawInput]
+  __CLI_NAME__ list
+  __CLI_NAME__ config get [keyPath]
+  __CLI_NAME__ config set <keyPath> <value>
+  __CLI_NAME__ config unset <keyPath>
+
+Options:
+  -h, --help     Show help
+  -v, --version  Show version`);
+}
+
+function printUnsupported(command: string): never {
+  console.error(`\`${command}\` is only available through \`cli-skill\` in the skill project directory.`);
   process.exit(1);
+}
+
+let commandArgs: string[];
+
+if (forwardedArgs[0] === "-h" || forwardedArgs[0] === "--help") {
+  printHelp();
+  process.exit(0);
+} else if (forwardedArgs[0] === "-v" || forwardedArgs[0] === "--version") {
+  console.log(getVersion());
+  process.exit(0);
+} else if (forwardedArgs.length === 0 || forwardedArgs[0] === "list") {
+  commandArgs = ["tools", "__SKILL_NAME__"];
+} else if (forwardedArgs[0] === "run") {
+  commandArgs = isCurrentSkillProject()
+    ? ["run", ...forwardedArgs.slice(1)]
+    : ["exec", "__SKILL_NAME__", ...forwardedArgs.slice(1)];
+} else if (blockedCommands.has(forwardedArgs[0])) {
+  printUnsupported(forwardedArgs[0]);
+} else if (forwardedArgs[0] === "tools" || forwardedArgs[0] === "config") {
+  commandArgs = forwardedArgs;
+} else {
+  commandArgs = isCurrentSkillProject()
+    ? ["run", ...forwardedArgs]
+    : ["exec", "__SKILL_NAME__", ...forwardedArgs];
+}
+
+const child = spawn("cli-skill", commandArgs, {
+  stdio: "inherit",
+  env: process.env,
+});
+
+child.on("exit", (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+
+  process.exit(code ?? 0);
 });

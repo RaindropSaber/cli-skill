@@ -1,6 +1,7 @@
 import type { CAC } from "cac";
 import { DEFAULT_TEMPLATE_NAME } from "../constants";
 import { createSkillProject } from "../project";
+import { registerLocalSkillProject } from "../registry";
 
 function resolveTemplateName(templateOption?: string): string {
   return templateOption ?? DEFAULT_TEMPLATE_NAME;
@@ -20,6 +21,7 @@ export function registerCreateCommand(cli: CAC): void {
         options.cliName ?? skillName,
         resolveTemplateName(options.template),
       );
+      await registerLocalSkillProject(targetDir);
       console.log(targetDir);
     });
 }

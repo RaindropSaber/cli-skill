@@ -1,12 +1,13 @@
 import { chmod, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 interface CreateSkillProjectOptions {
   templateName: string;
   skillName: string;
   cliName: string;
   targetDir: string;
-  corePackageVersion: string;
+  corePackageSpec: string;
 }
 
 function toPackageName(skillName: string): string {
@@ -17,7 +18,7 @@ function render(template: string, options: CreateSkillProjectOptions): string {
   return template
     .replaceAll("__SKILL_NAME__", options.skillName)
     .replaceAll("__CLI_NAME__", options.cliName)
-    .replaceAll("__CORE_PACKAGE_VERSION__", options.corePackageVersion)
+    .replaceAll("__CORE_PACKAGE_SPEC__", options.corePackageSpec)
     .replaceAll("__PACKAGE_NAME__", toPackageName(options.skillName));
 }
 
@@ -55,7 +56,10 @@ async function copyTemplateDirectory(
 }
 
 export async function createSkillProject(options: CreateSkillProjectOptions): Promise<string> {
-  const templateRoot = path.resolve(import.meta.dirname, `../${options.templateName}`);
+  const templateRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    `../${options.templateName}`,
+  );
   const templateStat = await stat(templateRoot);
   if (!templateStat.isDirectory()) {
     throw new Error(`Template directory not found: ${templateRoot}`);

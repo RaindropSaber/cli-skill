@@ -1,12 +1,32 @@
 import type { CAC } from "cac";
-import { removeManagedSkill } from "../registry";
+import { rm } from "node:fs/promises";
+import path from "node:path";
+import { resolveRegisteredSkillProject, removeRegistryEntry, unregisterProjectBins } from "../registry";
+
+function getInstalledSkillRoot(projectPath: string): string {
+  const segments = projectPath.split(path.sep);
+  const nodeModulesIndex = segments.lastIndexOf("node_modules");
+  if (nodeModulesIndex === -1) {
+    return projectPath;
+  }
+
+  return segments.slice(0, nodeModulesIndex).join(path.sep) || path.sep;
+}
 
 export function registerUninstallCommand(cli: CAC): void {
   cli
     .command("uninstall <packageName>", "Uninstall a managed cli skill")
-    .option("--skill-root <skillRoot>", "Override the target skill registration directory")
-    .action(async (packageName: string, options: { skillRoot?: string }) => {
-      const targetPath = await removeManagedSkill(packageName, { skillRoot: options.skillRoot });
-      console.log(targetPath);
+    .action(async (packageName: string) => {
+      const skillName = packageName.split("/").at(-1)?.replace(/^cli-skill-/, "") ?? packageName;
+      const resolved = await resolveRegisteredSkillProject(skillName);
+      await unregisterProjectBins(resolved.projectPath);
+      for (const agentPath of resolved.agentPaths) {
+        await rm(agentPath, { recursive: true, force: true });
+      }
+      if (resolved.source === "installed") {
+        await rm(getInstalledSkillRoot(resolved.projectPath), { recursive: true, force: true });
+      }
+      await removeRegistryEntry(skillName);
+      console.log(resolved.projectPath);
     });
 }

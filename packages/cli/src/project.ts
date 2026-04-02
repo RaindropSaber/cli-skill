@@ -4,9 +4,8 @@ import { pathToFileURL } from "node:url";
 import type { SkillDefinition } from "@cli-skill/core";
 import {
   DEFAULT_TEMPLATE_NAME,
-  LOCAL_CORE_PACKAGE_PATH,
+  hasLocalTemplatesPackage,
   LOCAL_TEMPLATE_PACKAGE_PATH,
-  getDefaultSkillsRoot,
 } from "./constants";
 import { runBunx } from "./bun";
 
@@ -17,17 +16,33 @@ export interface SkillPackageJson {
   version?: string;
 }
 
-async function getLocalCorePackageVersion(): Promise<string> {
-  const corePackageJsonPath = path.join(LOCAL_CORE_PACKAGE_PATH, "package.json");
-  const corePackageJson = JSON.parse(
-    await readFile(corePackageJsonPath, "utf8"),
-  ) as SkillPackageJson;
+async function importSkillDefinition(entryPath: string): Promise<SkillDefinition> {
+  const previousCwd = process.cwd();
 
-  if (typeof corePackageJson.version !== "string" || corePackageJson.version.length === 0) {
-    throw new Error(`Missing version in ${corePackageJsonPath}`);
+  try {
+    process.chdir(path.resolve(path.dirname(entryPath), ".."));
+    const imported = await import(pathToFileURL(entryPath).href);
+    const skill = (imported.default ?? imported.skill) as SkillDefinition | undefined;
+
+    if (!skill) {
+      throw new Error(`Cannot find exported skill definition in ${entryPath}`);
+    }
+
+    return skill;
+  } finally {
+    process.chdir(previousCwd);
+  }
+}
+
+async function getCliPackageVersion(): Promise<string> {
+  const cliPackageJsonPath = path.resolve(import.meta.dirname, "..", "package.json");
+  const cliPackageJson = JSON.parse(await readFile(cliPackageJsonPath, "utf8")) as SkillPackageJson;
+
+  if (typeof cliPackageJson.version !== "string" || cliPackageJson.version.length === 0) {
+    throw new Error(`Missing version in ${cliPackageJsonPath}`);
   }
 
-  return corePackageJson.version;
+  return cliPackageJson.version;
 }
 
 export async function createSkillProject(
@@ -36,14 +51,19 @@ export async function createSkillProject(
   templateName = DEFAULT_TEMPLATE_NAME,
   targetRoot?: string,
 ): Promise<string> {
-  const resolvedTargetRoot = targetRoot ?? (await getDefaultSkillsRoot());
+  const resolvedTargetRoot = targetRoot ?? process.cwd();
   const targetDir = path.join(resolvedTargetRoot, skillName);
-  const corePackageVersion = await getLocalCorePackageVersion();
+  const usingLocalTemplates = await hasLocalTemplatesPackage();
+  const cliPackageVersion = await getCliPackageVersion();
+  const corePackageSpec = cliPackageVersion;
+  const templatePackageSpec = usingLocalTemplates
+    ? `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`
+    : `@cli-skill/templates@${cliPackageVersion}`;
   await runBunx(
     [
       "--bun",
       "--package",
-      `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`,
+      templatePackageSpec,
       "cli-skill-create-template",
       "--template",
       templateName,
@@ -53,8 +73,8 @@ export async function createSkillProject(
       cliName,
       "--target-dir",
       targetDir,
-      "--core-package-version",
-      corePackageVersion,
+      "--core-package-spec",
+      corePackageSpec,
     ],
     process.cwd(),
   );
@@ -86,9 +106,6 @@ export async function ensureValidSkillProject(
     throw new Error(`Missing package name in ${path.join(projectDir, "package.json")}`);
   }
 
-  const skillFilePath = path.join(projectDir, "skill", "SKILL.md");
-  await readFile(skillFilePath, "utf8");
-
   const bins =
     typeof packageJson.bin === "string"
       ? { [getSkillNameFromPackageName(packageJson.name)]: packageJson.bin }
@@ -110,24 +127,11 @@ export async function ensureValidSkillProject(
 export async function loadSkillDefinition(projectDir: string): Promise<SkillDefinition> {
   await ensureValidSkillProject(projectDir);
   const entryPath = path.join(projectDir, "src", "index.ts");
-  const previousCwd = process.cwd();
-
-  try {
-    process.chdir(projectDir);
-    const imported = await import(pathToFileURL(entryPath).href);
-    const skill = (imported.default ?? imported.skill) as SkillDefinition | undefined;
-
-    if (!skill) {
-      throw new Error(`Cannot find exported skill definition in ${entryPath}`);
-    }
-
-    return skill.rootDir
-      ? skill
-      : {
-          ...skill,
-          rootDir: projectDir,
-        };
-  } finally {
-    process.chdir(previousCwd);
-  }
+  const skill = await importSkillDefinition(entryPath);
+  return skill.rootDir
+    ? skill
+    : {
+        ...skill,
+        rootDir: projectDir,
+      };
 }
