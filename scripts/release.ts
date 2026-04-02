@@ -1,23 +1,10 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const repoRoot = process.cwd();
-
-const packageJsonPaths = {
-  root: path.join(repoRoot, "package.json"),
-  core: path.join(repoRoot, "packages/core/package.json"),
-  templates: path.join(repoRoot, "packages/templates/package.json"),
-  cli: path.join(repoRoot, "packages/cli/package.json"),
-};
-
-const trackedFiles = [
-  packageJsonPaths.root,
-  packageJsonPaths.core,
-  packageJsonPaths.templates,
-  packageJsonPaths.cli,
-  path.join(repoRoot, "bun.lock"),
-];
+const rootPackageJsonPath = path.join(repoRoot, "package.json");
+const packagesDir = path.join(repoRoot, "packages");
 
 function usage() {
   return [
@@ -32,7 +19,7 @@ function usage() {
     "  - git status must be clean before preparing a release commit",
     "  - do not run release on main; use a release branch or another working branch",
     "  - stable releases use the next semantic version",
-    "  - beta releases use 0.0.1-beta.<timestamp>",
+    "  - beta releases use the next semantic version with -beta.<timestamp>",
     "  - the script commits version changes on the current branch",
   ].join("\n");
 }
@@ -112,11 +99,20 @@ function getTimestampVersionPart() {
 }
 
 async function getCurrentVersion() {
-  const rootPkg = await readJson(packageJsonPaths.root);
+  const rootPkg = await readJson(rootPackageJsonPath);
   if (typeof rootPkg.version !== "string" || rootPkg.version.length === 0) {
-    throw new Error(`Missing version in ${packageJsonPaths.root}`);
+    throw new Error(`Missing version in ${rootPackageJsonPath}`);
   }
   return rootPkg.version;
+}
+
+function getBaseVersion(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-.+)?$/.exec(version);
+  if (!match) {
+    throw new Error(`Unsupported version format: ${version}`);
+  }
+
+  return `${match[1]}.${match[2]}.${match[3]}`;
 }
 
 function bumpVersion(version, releaseType) {
@@ -151,22 +147,44 @@ function bumpVersion(version, releaseType) {
 }
 
 async function applyVersion(version) {
-  const rootPkg = await readJson(packageJsonPaths.root);
-  const corePkg = await readJson(packageJsonPaths.core);
-  const templatesPkg = await readJson(packageJsonPaths.templates);
-  const cliPkg = await readJson(packageJsonPaths.cli);
+  const packageJsonPaths = await getManagedPackageJsonPaths();
 
-  rootPkg.version = version;
-  corePkg.version = version;
-  templatesPkg.version = version;
-  cliPkg.version = version;
-  cliPkg.dependencies ||= {};
-  cliPkg.dependencies["@cli-skill/core"] = `^${version}`;
+  for (const packageJsonPath of packageJsonPaths) {
+    const pkg = await readJson(packageJsonPath);
+    pkg.version = version;
+    syncInternalDependencies(pkg, version);
+    await writeJson(packageJsonPath, pkg);
+  }
+}
 
-  await writeJson(packageJsonPaths.root, rootPkg);
-  await writeJson(packageJsonPaths.core, corePkg);
-  await writeJson(packageJsonPaths.templates, templatesPkg);
-  await writeJson(packageJsonPaths.cli, cliPkg);
+async function getManagedPackageJsonPaths() {
+  const entries = await readdir(packagesDir, { withFileTypes: true });
+  const packagePaths = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(packagesDir, entry.name, "package.json"));
+
+  return [rootPackageJsonPath, ...packagePaths];
+}
+
+function syncDependencyGroup(dependencies, version) {
+  if (!dependencies || typeof dependencies !== "object") {
+    return;
+  }
+
+  for (const [name, value] of Object.entries(dependencies)) {
+    if (!name.startsWith("@cli-skill/") || typeof value !== "string") {
+      continue;
+    }
+
+    dependencies[name] = `^${version}`;
+  }
+}
+
+function syncInternalDependencies(pkg, version) {
+  syncDependencyGroup(pkg.dependencies, version);
+  syncDependencyGroup(pkg.devDependencies, version);
+  syncDependencyGroup(pkg.peerDependencies, version);
+  syncDependencyGroup(pkg.optionalDependencies, version);
 }
 
 async function main() {
@@ -187,10 +205,12 @@ async function main() {
   }
 
   const currentVersion = await getCurrentVersion();
+  const currentBaseVersion = getBaseVersion(currentVersion);
   const nextVersion =
     options.channel === "stable"
-      ? bumpVersion(currentVersion, options.type)
-      : `0.0.1-beta.${getTimestampVersionPart()}`;
+      ? bumpVersion(currentBaseVersion, options.type)
+      : `${bumpVersion(currentBaseVersion, options.type)}-beta.${getTimestampVersionPart()}`;
+  const trackedFiles = [...(await getManagedPackageJsonPaths()), path.join(repoRoot, "bun.lock")];
 
   try {
     await applyVersion(nextVersion);
