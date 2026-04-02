@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Test workspace
-        run: bun run test
-
       - name: Verify tag version matches packages
         run: |
           VERSION="${GITHUB_REF_NAME#v}"

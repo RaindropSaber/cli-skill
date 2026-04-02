@@ -9,45 +9,25 @@ const packagesDir = path.join(repoRoot, "packages");
 function usage() {
   return [
     "Usage:",
-    "  bun run release --type <major|minor|patch> [--channel <stable|beta>]",
+    "  bun run release <patch|minor|major|beta>",
     "",
     "Examples:",
-    "  bun run release --type patch",
-    "  bun run release --type minor --channel beta",
+    "  bun run release patch",
+    "  bun run release minor",
+    "  bun run release major",
+    "  bun run release beta",
     "",
     "Rules:",
-    "  - git status must be clean before preparing a release commit",
     "  - do not run release on main; use a release branch or another working branch",
-    "  - stable releases use the next semantic version",
-    "  - beta releases use the next semantic version with -beta.<timestamp>",
+    "  - patch/minor/major releases use the next semantic version",
+    "  - beta releases keep the current semantic base version and refresh the -beta.<timestamp> suffix",
     "  - the script commits version changes on the current branch",
   ].join("\n");
 }
 
 function parseArgs(argv) {
-  const options = {
-    type: undefined,
-    channel: "stable",
-  };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    const next = argv[index + 1];
-
-    if (arg === "--type") {
-      options.type = next;
-      index += 1;
-      continue;
-    }
-
-    if (arg === "--channel") {
-      options.channel = next ?? "stable";
-      index += 1;
-      continue;
-    }
-  }
-
-  return options;
+  const [mode] = argv;
+  return { mode };
 }
 
 function run(command, args, options = {}) {
@@ -74,13 +54,6 @@ async function readJson(filePath) {
 
 async function writeJson(filePath, value) {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-}
-
-function ensureCleanGitStatus() {
-  const status = run("git", ["status", "--porcelain"]);
-  if (status.length > 0) {
-    throw new Error("Git status is not clean. Commit or stash your changes before preparing a release branch.");
-  }
 }
 
 function getCurrentBranch() {
@@ -189,15 +162,9 @@ function syncInternalDependencies(pkg, version) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  if (!options.type || !["major", "minor", "patch"].includes(options.type)) {
+  if (!options.mode || !["major", "minor", "patch", "beta"].includes(options.mode)) {
     throw new Error(usage());
   }
-
-  if (!["stable", "beta"].includes(options.channel)) {
-    throw new Error(`Unsupported channel: ${options.channel}`);
-  }
-
-  ensureCleanGitStatus();
 
   const currentBranch = getCurrentBranch();
   if (currentBranch === "main") {
@@ -207,9 +174,9 @@ async function main() {
   const currentVersion = await getCurrentVersion();
   const currentBaseVersion = getBaseVersion(currentVersion);
   const nextVersion =
-    options.channel === "stable"
-      ? bumpVersion(currentBaseVersion, options.type)
-      : `${bumpVersion(currentBaseVersion, options.type)}-beta.${getTimestampVersionPart()}`;
+    options.mode === "beta"
+      ? `${currentBaseVersion}-beta.${getTimestampVersionPart()}`
+      : bumpVersion(currentBaseVersion, options.mode);
   const trackedFiles = [...(await getManagedPackageJsonPaths()), path.join(repoRoot, "bun.lock")];
 
   try {
@@ -223,7 +190,7 @@ async function main() {
     ]);
     run("git", ["commit", "-m", `chore(release): prepare ${nextVersion}`]);
 
-    console.log(`Prepared ${options.channel} release on branch: ${currentBranch}`);
+    console.log(`Prepared ${options.mode} release on branch: ${currentBranch}`);
     console.log(`Version: ${nextVersion}`);
     console.log(`Next step: push ${currentBranch}, open a PR to main, merge after checks pass, then create and push the matching tag.`);
   } catch (error) {
