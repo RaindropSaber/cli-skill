@@ -17,9 +17,9 @@
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {
-    "@cli-skill/core": "^0.0.1-beta.20260402112811",
+    "@cli-skill/core": "workspace:*",
     "cac": "^6.7.14",
     "lodash": "^4.17.21",
-    "zod": "^3.25.76"
+    "zod": "^4.3.6"
   }
 }

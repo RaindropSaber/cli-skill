@@ -22,6 +22,7 @@
 ```bash
 cli-skill create <skillName> --cli-name <cliName> [--template <templateName>]
 cli-skill list
+cli-skill tools <skillName>
 cli-skill install <skillName> [--packageName <packageName>]
 cli-skill uninstall <packageName>
 cli-skill config get [keyPath]
@@ -69,6 +70,13 @@ cli-skill mount
   - 定义 tools
 - `src/skill/*`
   - 文档模板源目录
+
+模板生成出来的 skill 包会同时依赖：
+
+- `@cli-skill/core`
+  - 运行 skill
+- `@cli-skill/cli`
+  - 在项目目录内调用 `cli-skill build`、`cli-skill mount` 等命令
 
 执行 `cli-skill build` 后会生成：
 
@@ -127,3 +135,26 @@ cli-skill mount
 ```bash
 cli-skill install fx --packageName @scope/cli-skill-fx
 ```
+
+## skill bin 的行为
+
+生成出来的 skill 自带一个很薄的 bin。
+
+例如：
+
+```bash
+my-skill list
+my-skill open_page '{"url":"https://example.com"}'
+```
+
+它适合做：
+
+- 查看这个 skill 的 tool 列表
+- 直接执行某个 tool
+
+它不承担项目管理命令。以下操作仍然只通过 `cli-skill` 使用：
+
+- `build`
+- `mount`
+- `unmount`
+- `publish`

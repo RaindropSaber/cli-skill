@@ -18,9 +18,10 @@
   },
   "dependencies": {
     "@cli-skill/core": "__CORE_PACKAGE_SPEC__",
-    "zod": "^3.25.76"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cli-skill/cli": "__CLI_PACKAGE_SPEC__",
     "@types/node": "^24.0.10",
     "typescript": "6.0.2"
   },

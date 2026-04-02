@@ -4,12 +4,16 @@
 
 它是 skill 项目里用来定义 skill、定义 tool、注入插件能力的核心包。
 
+它不负责平台 CLI 的命令解析。命令层在 `@cli-skill/cli`。
+
 ## 核心 API
 
 - `defineSkill`
 - `defineTool`
 - 内置插件，例如 `browserPlugin`
 - runtime 上下文的创建与销毁
+- `listTools`
+- `runTool`
 
 ## skill 模型
 
@@ -96,6 +100,7 @@ export default defineSkill({
 ## 依赖说明
 
 - `zod` 是 `peerDependencies`
+- `playwright` 是 `dependencies`
 - 如果 skill 项目自己直接 `import { z } from "zod"`，就应在 skill 自己的包里声明 `zod`
 
 这也是为什么生成出来的 skill 模板会把 `zod` 放在 skill 自己的 `dependencies` 里。

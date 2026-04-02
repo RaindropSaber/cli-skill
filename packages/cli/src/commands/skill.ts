@@ -1,5 +1,5 @@
 import type { CAC } from "cac";
-import { runCli } from "@cli-skill/core";
+import { listTools, runTool } from "@cli-skill/core";
 import { writeSkillDocsMarkdown } from "../build";
 import { runBunStreaming } from "../bun";
 import { loadSkillDefinition } from "../project";
@@ -16,16 +16,14 @@ export function registerSkillCommands(cli: CAC): void {
     .action(async (skillName: string, toolName: string, rawInput?: string) => {
       const resolved = await resolveRegisteredSkillProject(skillName);
       const skill = await loadSkillDefinition(resolved.projectPath);
-      const exitCode = await runCli(skill, ["run", toolName, ...(typeof rawInput === "string" ? [rawInput] : [])], {
-        rootDir: resolved.projectPath,
-      });
+      const exitCode = await runTool(skill, toolName, rawInput, { rootDir: resolved.projectPath });
       process.exitCode = exitCode;
     });
 
-  cli.command("tools", "List tools in the current cli skill project").action(async () => {
-    const resolved = await getCurrentSkillProject();
+  cli.command("tools [skillName]", "List tools in the current cli skill project or a registered cli skill").action(async (skillName?: string) => {
+    const resolved = skillName ? await resolveRegisteredSkillProject(skillName) : await getCurrentSkillProject();
     const skill = await loadSkillDefinition(resolved.projectPath);
-    const exitCode = await runCli(skill, ["list"], { rootDir: resolved.projectPath });
+    const exitCode = await listTools(skill, { rootDir: resolved.projectPath });
     process.exitCode = exitCode;
   });
 
@@ -34,9 +32,7 @@ export function registerSkillCommands(cli: CAC): void {
     .action(async (toolName: string, rawInput?: string) => {
       const resolved = await getCurrentSkillProject();
       const skill = await loadSkillDefinition(resolved.projectPath);
-      const exitCode = await runCli(skill, ["run", toolName, ...(typeof rawInput === "string" ? [rawInput] : [])], {
-        rootDir: resolved.projectPath,
-      });
+      const exitCode = await runTool(skill, toolName, rawInput, { rootDir: resolved.projectPath });
       process.exitCode = exitCode;
     });
 

@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { type ZodRawShape, type ZodTypeAny } from "zod";
+import { type ZodTypeAny } from "zod";
 import type { SkillDefinition } from "@cli-skill/core";
 
 interface FieldInfo {
@@ -15,27 +15,39 @@ interface DocRow {
   notes: string;
 }
 
+type ShapeLike = Record<string, ZodTypeAny>;
+
+function getSchemaDef(schema: ZodTypeAny): Record<string, unknown> | undefined {
+  return (schema as ZodTypeAny & { _def?: Record<string, unknown>; def?: Record<string, unknown> })._def
+    ?? (schema as ZodTypeAny & { def?: Record<string, unknown> }).def;
+}
+
 function unwrapField(schema: ZodTypeAny): FieldInfo {
   let current = schema;
   let optional = false;
   let defaultValue: unknown;
 
   while (true) {
-    if (current?._def?.typeName === "ZodOptional") {
+    const def = getSchemaDef(current);
+    const typeName = def?.typeName;
+    const type = def?.type;
+
+    if ((typeName === "ZodOptional" || type === "optional") && def?.innerType) {
       optional = true;
-      current = current._def.innerType;
+      current = def.innerType as ZodTypeAny;
       continue;
     }
 
-    if (current?._def?.typeName === "ZodDefault") {
+    if ((typeName === "ZodDefault" || type === "default") && def?.innerType) {
       optional = true;
-      defaultValue = current._def.defaultValue();
-      current = current._def.innerType;
+      const rawDefault = def.defaultValue;
+      defaultValue = typeof rawDefault === "function" ? rawDefault() : rawDefault;
+      current = def.innerType as ZodTypeAny;
       continue;
     }
 
-    if (current?._def?.typeName === "ZodNullable") {
-      current = current._def.innerType;
+    if ((typeName === "ZodNullable" || type === "nullable") && def?.innerType) {
+      current = def.innerType as ZodTypeAny;
       continue;
     }
 
@@ -46,25 +58,30 @@ function unwrapField(schema: ZodTypeAny): FieldInfo {
 }
 
 function getTypeName(schema: ZodTypeAny): string | undefined {
-  return schema?._def?.typeName;
+  const def = getSchemaDef(schema);
+  return (def?.typeName as string | undefined) ?? (def?.type as string | undefined);
 }
 
-function getObjectShape(schema: ZodTypeAny): ZodRawShape | null {
-  if (getTypeName(schema) !== "ZodObject") {
+function getObjectShape(schema: ZodTypeAny): ShapeLike | null {
+  const typeName = getTypeName(schema);
+  if (typeName !== "ZodObject" && typeName !== "object") {
     return null;
   }
 
   const objectSchema = schema as ZodTypeAny & {
-    _def: { shape?: (() => ZodRawShape) | ZodRawShape };
-    shape?: ZodRawShape;
+    _def?: { shape?: (() => ShapeLike) | ShapeLike };
+    def?: { shape?: (() => ShapeLike) | ShapeLike };
+    shape?: ShapeLike;
   };
+  const def = getSchemaDef(objectSchema);
+  const shapeValue = def?.shape as (() => ShapeLike) | ShapeLike | undefined;
 
-  if (typeof objectSchema._def.shape === "function") {
-    return objectSchema._def.shape();
+  if (typeof shapeValue === "function") {
+    return shapeValue();
   }
 
-  if (objectSchema._def.shape) {
-    return objectSchema._def.shape;
+  if (shapeValue) {
+    return shapeValue;
   }
 
   return objectSchema.shape ?? null;
@@ -87,21 +104,32 @@ function describeType(schema: ZodTypeAny): string {
     return "boolean";
   }
 
-  if (typeName === "ZodLiteral") {
-    return JSON.stringify(base._def.value);
+  const def = getSchemaDef(base);
+
+  if (typeName === "ZodLiteral" || typeName === "literal") {
+    const values = def?.values;
+    if (Array.isArray(values) && values.length === 1) {
+      return JSON.stringify(values[0]);
+    }
+
+    return JSON.stringify(def?.value);
   }
 
-  if (typeName === "ZodEnum") {
-    return (base as ZodTypeAny & { options: string[] }).options
-      .map((item: string) => JSON.stringify(item))
+  if (typeName === "ZodEnum" || typeName === "enum") {
+    const entries = (def?.entries as Record<string, string> | undefined)
+      ?? ((base as ZodTypeAny & { options?: string[] }).options
+        ? Object.fromEntries(((base as ZodTypeAny & { options: string[] }).options).map((item) => [item, item]))
+        : undefined);
+    return Object.values(entries ?? {})
+      .map((item) => JSON.stringify(item))
       .join(" | ");
   }
 
-  if (typeName === "ZodArray") {
-    return `array<${describeType(base._def.type)}>`;
+  if (typeName === "ZodArray" || typeName === "array") {
+    return `array<${describeType((def?.type ?? def?.element) as ZodTypeAny)}>`;
   }
 
-  if (typeName === "ZodObject") {
+  if (typeName === "ZodObject" || typeName === "object") {
     return "object";
   }
 
@@ -123,7 +151,7 @@ function describeNotes(schema: ZodTypeAny): string {
   return notes.join("; ");
 }
 
-function collectShapeRows(shape: ZodRawShape, prefix = ""): DocRow[] {
+function collectShapeRows(shape: ShapeLike, prefix = ""): DocRow[] {
   const rows: DocRow[] = [];
 
   for (const [key, schema] of Object.entries(shape)) {
@@ -180,7 +208,7 @@ function renderTable(headers: string[], rows: string[][]): string {
 }
 
 function renderConfigSection(skill: SkillDefinition): string {
-  const rows = collectShapeRows(skill.config).map((row) => [row.path, row.type, row.notes || ""]);
+  const rows = collectShapeRows(skill.config as ShapeLike).map((row) => [row.path, row.type, row.notes || ""]);
   return renderTable(["字段", "类型", "说明"], rows.length > 0 ? rows : [["-", "-", "-"]]);
 }
 

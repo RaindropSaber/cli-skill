@@ -19,11 +19,37 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+function isMissingBrowserExecutableError(error: unknown): error is Error {
+  return error instanceof Error && /Executable doesn't exist/i.test(error.message);
+}
+
+function createMissingBrowserExecutableError(error: Error): Error {
+  return new Error(
+    [
+      "Playwright browser binaries are not installed.",
+      'Run `bunx playwright install chromium` and try again.',
+      "",
+      error.message,
+    ].join("\n"),
+  );
+}
+
 export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
   name: "browser",
   async setup(ctx, options) {
     const storageState = (await fileExists(ctx.storageStatePath)) ? ctx.storageStatePath : undefined;
-    const browser = await chromium.launch({ headless: options.headed !== true });
+    let browser: Browser;
+
+    try {
+      browser = await chromium.launch({ headless: options.headed !== true });
+    } catch (error) {
+      if (isMissingBrowserExecutableError(error)) {
+        throw createMissingBrowserExecutableError(error);
+      }
+
+      throw error;
+    }
+
     const context = await browser.newContext({ storageState });
     const page = await context.newPage();
 

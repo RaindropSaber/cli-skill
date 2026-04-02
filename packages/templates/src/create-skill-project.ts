@@ -8,6 +8,7 @@ interface CreateSkillProjectOptions {
   cliName: string;
   targetDir: string;
   corePackageSpec: string;
+  cliPackageSpec: string;
 }
 
 function toPackageName(skillName: string): string {
@@ -19,6 +20,7 @@ function render(template: string, options: CreateSkillProjectOptions): string {
     .replaceAll("__SKILL_NAME__", options.skillName)
     .replaceAll("__CLI_NAME__", options.cliName)
     .replaceAll("__CORE_PACKAGE_SPEC__", options.corePackageSpec)
+    .replaceAll("__CLI_PACKAGE_SPEC__", options.cliPackageSpec)
     .replaceAll("__PACKAGE_NAME__", toPackageName(options.skillName));
 }
 

@@ -21,6 +21,7 @@
   - `defineSkill`
   - `defineTool`
   - 基于插件的运行时上下文
+  - tool 执行与 runtime 生命周期
 - `@cli-skill/templates`
   - 内置模板
 
@@ -83,9 +84,23 @@
 
 - `cli-skill exec <skillName> <toolName> [rawInput]`
 
+补充：
+
+- `cli-skill tools <skillName>`
+  - 列出某个已注册 skill 的 tools
+
 生成出来的 skill 仍然保留自己的 bin，但它只是一个很薄的转发层，最终仍然会进入：
 
 - `cli-skill exec <skillName> ...`
+
+其中：
+
+- `skill-name list`
+  - 等价于 `cli-skill tools <skillName>`
+- `skill-name <tool>`
+  - 等价于 `cli-skill exec <skillName> <tool>`
+- `skill-name build` / `mount` / `publish`
+  - 不提供；这些项目级命令只通过 `cli-skill` 使用
 
 ## 架构
 

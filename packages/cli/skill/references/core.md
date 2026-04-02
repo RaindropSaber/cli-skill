@@ -67,6 +67,8 @@ cli-skill build
 
 也就是说，skill 只做“组织”和“说明”，不直接承担运行时能力注入。
 
+命令解析也不在 `core`。`core` 只负责类型、runtime、tool 执行。
+
 ## `defineTool` 负责什么
 
 `defineTool` 才是运行能力的核心。
@@ -210,6 +212,12 @@ export default defineSkill({
 - skill 自己如果直接 `import { z } from "zod"`，就应在自己的包里声明 `zod`
 
 这也是为什么生成出来的 skill 模板会把 `zod` 放在自己的 `dependencies` 里。
+
+生成出来的 skill 模板还会把 `@cli-skill/cli` 放进 `devDependencies`，用于在 skill 项目目录里直接执行：
+
+- `cli-skill build`
+- `cli-skill mount`
+- `cli-skill publish`
 
 ## 什么时候继续往下看
 
