@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -63,7 +64,9 @@ export async function runBunAndCapture(args: string[], cwd?: string): Promise<st
 }
 
 export async function getBunGlobalBinDir(): Promise<string> {
-  return runBunAndCapture(["pm", "bin", "-g"]);
+  const home = process.env.HOME || os.homedir();
+  const bunInstall = process.env.BUN_INSTALL || path.join(home, ".bun");
+  return path.join(bunInstall, "bin");
 }
 
 export async function installPackageToDirectory(packageSpec: string, installDir: string): Promise<void> {
