@@ -36,19 +36,6 @@ async function importSkillDefinition(entryPath: string): Promise<SkillDefinition
   }
 }
 
-async function getLocalCorePackageVersion(): Promise<string> {
-  const corePackageJsonPath = path.join(LOCAL_CORE_PACKAGE_PATH, "package.json");
-  const corePackageJson = JSON.parse(
-    await readFile(corePackageJsonPath, "utf8"),
-  ) as SkillPackageJson;
-
-  if (typeof corePackageJson.version !== "string" || corePackageJson.version.length === 0) {
-    throw new Error(`Missing version in ${corePackageJsonPath}`);
-  }
-
-  return corePackageJson.version;
-}
-
 async function getCliPackageVersion(): Promise<string> {
   const cliPackageJsonPath = path.resolve(import.meta.dirname, "..", "package.json");
   const cliPackageJson = JSON.parse(await readFile(cliPackageJsonPath, "utf8")) as SkillPackageJson;
@@ -72,7 +59,7 @@ export async function createSkillProject(
   const cliPackageVersion = usingLocalTemplates ? undefined : await getCliPackageVersion();
   const corePackageSpec = usingLocalTemplates
     ? `file:${LOCAL_CORE_PACKAGE_PATH}`
-    : `@cli-skill/core@${cliPackageVersion!}`;
+    : cliPackageVersion!;
   const templatePackageSpec = usingLocalTemplates
     ? `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`
     : `@cli-skill/templates@${cliPackageVersion!}`;
