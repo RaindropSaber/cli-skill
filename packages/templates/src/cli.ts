@@ -6,7 +6,6 @@ interface CliOptions {
   cliName?: string;
   targetDir?: string;
   corePackageSpec?: string;
-  cliPackageSpec?: string;
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -46,11 +45,6 @@ function parseArgs(argv: string[]): CliOptions {
       continue;
     }
 
-    if (arg === "--cli-package-spec") {
-      options.cliPackageSpec = next;
-      index += 1;
-      continue;
-    }
   }
 
   return options;
@@ -61,7 +55,6 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
   if (!options.skillName) throw new Error("Missing --skill-name");
   if (!options.targetDir) throw new Error("Missing --target-dir");
   if (!options.corePackageSpec) throw new Error("Missing --core-package-spec");
-  if (!options.cliPackageSpec) throw new Error("Missing --cli-package-spec");
 
   const targetDir = await createSkillProject({
     templateName: options.template ?? "basic",
@@ -69,7 +62,6 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     cliName: options.cliName ?? options.skillName,
     targetDir: options.targetDir,
     corePackageSpec: options.corePackageSpec,
-    cliPackageSpec: options.cliPackageSpec,
   });
 
   console.log(targetDir);

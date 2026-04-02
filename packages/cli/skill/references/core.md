@@ -213,11 +213,7 @@ export default defineSkill({
 
 这也是为什么生成出来的 skill 模板会把 `zod` 放在自己的 `dependencies` 里。
 
-生成出来的 skill 模板还会把 `@cli-skill/cli` 放进 `devDependencies`，用于在 skill 项目目录里直接执行：
-
-- `cli-skill build`
-- `cli-skill mount`
-- `cli-skill publish`
+skill 项目默认只依赖 `@cli-skill/core`。平台 CLI 通过全局安装的 `cli-skill` 提供，不会再写进模板依赖里。
 
 ## 什么时候继续往下看
 

@@ -56,7 +56,6 @@ export async function createSkillProject(
   const usingLocalTemplates = await hasLocalTemplatesPackage();
   const cliPackageVersion = await getCliPackageVersion();
   const corePackageSpec = cliPackageVersion;
-  const cliPackageSpec = cliPackageVersion;
   const templatePackageSpec = usingLocalTemplates
     ? `file:${LOCAL_TEMPLATE_PACKAGE_PATH}`
     : `@cli-skill/templates@${cliPackageVersion}`;
@@ -76,8 +75,6 @@ export async function createSkillProject(
       targetDir,
       "--core-package-spec",
       corePackageSpec,
-      "--cli-package-spec",
-      cliPackageSpec,
     ],
     process.cwd(),
   );
