@@ -1,6 +1,6 @@
 {
   "name": "@cli-skill/core",
-  "version": "0.0.1-beta.20260402073007",
+  "version": "0.0.1-beta.20260402075508",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
