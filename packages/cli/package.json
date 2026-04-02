@@ -1,6 +1,6 @@
 {
   "name": "@cli-skill/cli",
-  "version": "0.0.3-beta.20260402144937",
+  "version": "0.0.2-beta.20260402145701",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -17,7 +17,7 @@
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {
-    "@cli-skill/core": "^0.0.3-beta.20260402144937",
+    "@cli-skill/core": "^0.0.2-beta.20260402145701",
     "cac": "^6.7.14",
     "lodash": "^4.17.21",
     "zod": "^4.3.6"
