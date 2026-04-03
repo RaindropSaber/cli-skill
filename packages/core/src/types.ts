@@ -11,6 +11,7 @@ export interface CliSkillConfig {
   skillsRoot?: string;
   installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
+  browserStorageRoot?: string;
   env?: Record<string, string>;
   skillConfig?: Record<string, Record<string, unknown>>;
   skills?: Record<

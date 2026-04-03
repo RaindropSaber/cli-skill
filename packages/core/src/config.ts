@@ -38,11 +38,12 @@ export async function loadBrowserSkillConfig(): Promise<CliSkillConfig> {
 }
 
 export function getDefaultBrowserSkillConfig(): Required<
-  Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "skillConfig">
+  Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "skillConfig">
 > {
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
     agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
+    browserStorageRoot: path.join(getBrowserSkillHome(), "browser", "storage"),
     skillConfig: {},
   };
 }
@@ -53,7 +54,7 @@ export async function saveBrowserSkillConfig(config: CliSkillConfig): Promise<vo
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
-export async function getResolvedBrowserSkillConfig(): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot">> & CliSkillConfig> {
+export async function getResolvedBrowserSkillConfig(): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserStorageRoot">> & CliSkillConfig> {
   const config = await loadBrowserSkillConfig();
   const defaults = getDefaultBrowserSkillConfig();
 
@@ -62,6 +63,7 @@ export async function getResolvedBrowserSkillConfig(): Promise<Required<Pick<Cli
     skillConfig: config.skillConfig ?? defaults.skillConfig,
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
+    browserStorageRoot: resolveUserPath(config.browserStorageRoot ?? defaults.browserStorageRoot),
   };
 }
 

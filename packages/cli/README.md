@@ -2,7 +2,7 @@
 
 `@cli-skill/cli` 是 `cli-skill` 的平台命令行入口。
 
-它不是某一个具体 skill 的运行时，而是整个 skill 生命周期和本地注册表的管理入口。
+它不是某一个具体 skill 的运行时，而是整个 skill 生命周期、本地注册表和浏览器录制工作流的管理入口。
 
 ## 主要职责
 
@@ -14,6 +14,7 @@
 - 挂载和取消挂载本地 skill
 - 发布本地 skill
 - 读写 `~/.cli-skill/config.json`
+- 启动浏览器录制
 
 ## 命令结构
 
@@ -28,6 +29,7 @@ cli-skill uninstall <packageName>
 cli-skill config get [keyPath]
 cli-skill config set <keyPath> <value>
 cli-skill exec <skillName> <toolName> [rawInput]
+cli-skill browser record
 ```
 
 ### 当前目录命令
@@ -54,6 +56,12 @@ cli-skill build
 cli-skill mount
 ```
 
+浏览器录制：
+
+```bash
+cli-skill browser record
+```
+
 ## skill 项目结构
 
 一个标准 skill 项目包含：
@@ -71,12 +79,10 @@ cli-skill mount
 - `src/skill/*`
   - 文档模板源目录
 
-模板生成出来的 skill 包会同时依赖：
+模板生成出来的 skill 包默认只依赖：
 
 - `@cli-skill/core`
   - 运行 skill
-- `@cli-skill/cli`
-  - 在项目目录内调用 `cli-skill build`、`cli-skill mount` 等命令
 
 执行 `cli-skill build` 后会生成：
 
@@ -122,6 +128,14 @@ cli-skill mount
 默认 agent 目录是：
 
 - `~/.agents/skills`
+
+浏览器共享 storage 默认目录：
+
+- `~/.cli-skill/browser/storage`
+
+浏览器录制结果默认目录：
+
+- `~/.cli-skill/browser-recorder`
 
 `install` 默认接受 skill 名。CLI 会在 npm 中查找同时包含：
 

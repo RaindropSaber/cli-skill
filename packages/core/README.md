@@ -52,6 +52,10 @@ plugin 负责提供运行时能力和对应的上下文字段。
 - `page`
 - `request`
 
+并默认使用共享浏览器 storage：
+
+- `~/.cli-skill/browser/storage`
+
 当前 plugin 生命周期是单次执行：
 
 1. `setup`
@@ -104,3 +108,22 @@ export default defineSkill({
 - 如果 skill 项目自己直接 `import { z } from "zod"`，就应在 skill 自己的包里声明 `zod`
 
 这也是为什么生成出来的 skill 模板会把 `zod` 放在 skill 自己的 `dependencies` 里。
+
+## 浏览器状态共享
+
+`browserPlugin` 默认会把浏览器运行时的 storage 根目录放到：
+
+- `~/.cli-skill/browser/storage`
+
+这意味着：
+
+- 浏览器录制
+- tool 执行
+
+默认可以共享登录态。
+
+如果需要修改，可以通过 `~/.cli-skill/config.json` 里的：
+
+- `browserStorageRoot`
+
+覆盖默认路径。

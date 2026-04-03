@@ -9,6 +9,7 @@ export interface BrowserSkillCliConfig {
   skillsRoot?: string;
   installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
+  browserStorageRoot?: string;
   skillConfig?: Record<string, Record<string, unknown>>;
 }
 
@@ -46,18 +47,19 @@ export async function loadBrowserSkillCliConfig(): Promise<BrowserSkillCliConfig
 }
 
 export function getDefaultBrowserSkillCliConfig(): Required<
-  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "skillConfig">
+  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "skillConfig">
 > {
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
     installedSkillsRoot: path.join(getBrowserSkillHome(), "installed"),
     agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
+    browserStorageRoot: path.join(getBrowserSkillHome(), "browser", "storage"),
     skillConfig: {},
   };
 }
 
 export async function getResolvedBrowserSkillCliConfig(): Promise<
-  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot">> &
+  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot">> &
     BrowserSkillCliConfig
 > {
   const config = await loadBrowserSkillCliConfig();
@@ -69,6 +71,7 @@ export async function getResolvedBrowserSkillCliConfig(): Promise<
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
     installedSkillsRoot: resolveUserPath(config.installedSkillsRoot ?? defaults.installedSkillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
+    browserStorageRoot: resolveUserPath(config.browserStorageRoot ?? defaults.browserStorageRoot),
   };
 }
 
@@ -84,6 +87,7 @@ export async function ensureBrowserSkillCliConfig(): Promise<string> {
       skillsRoot: parsed.skillsRoot ?? defaults.skillsRoot,
       installedSkillsRoot: parsed.installedSkillsRoot ?? defaults.installedSkillsRoot,
       agentsSkillsRoot: parsed.agentsSkillsRoot ?? defaults.agentsSkillsRoot,
+      browserStorageRoot: parsed.browserStorageRoot ?? defaults.browserStorageRoot,
       skillConfig: parsed.skillConfig ?? defaults.skillConfig,
     };
 
