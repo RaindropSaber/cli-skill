@@ -24,20 +24,26 @@ export function getReviewPageHtml(sessionId: string): string {
     <header>
       <h1>录制会话 ${sessionId}</h1>
       <div class="tabs">
-        <button data-tab="actions" class="active">用户行为</button>
+        <button data-tab="timeline" class="active">时间线</button>
+        <button data-tab="actions">用户行为</button>
         <button data-tab="network">网络请求</button>
+        <button data-tab="dom">DOM 快照</button>
         <button data-tab="keyframes">关键帧快照</button>
       </div>
     </header>
     <main>
-      <section id="actions" class="active"></section>
+      <section id="timeline" class="active"></section>
+      <section id="actions"></section>
       <section id="network"></section>
+      <section id="dom"></section>
       <section id="keyframes"></section>
     </main>
     <script>
       const sessionId = ${JSON.stringify(sessionId)};
+      const timelineSection = document.getElementById("timeline");
       const actionsSection = document.getElementById("actions");
       const networkSection = document.getElementById("network");
+      const domSection = document.getElementById("dom");
       const keyframesSection = document.getElementById("keyframes");
 
       document.querySelectorAll("[data-tab]").forEach((button) => {
@@ -60,9 +66,17 @@ export function getReviewPageHtml(sessionId: string): string {
         const response = await fetch('/api/sessions/' + sessionId + '/export');
         const data = await response.json();
 
+        timelineSection.innerHTML = "";
         actionsSection.innerHTML = "";
         networkSection.innerHTML = "";
+        domSection.innerHTML = "";
         keyframesSection.innerHTML = "";
+
+        data.timeline.forEach((item) => {
+          timelineSection.appendChild(card(
+            '<strong>' + item.title + '</strong><pre>' + JSON.stringify(item, null, 2) + '</pre>'
+          ));
+        });
 
         data.actions.forEach((item) => {
           actionsSection.appendChild(card(
@@ -73,6 +87,12 @@ export function getReviewPageHtml(sessionId: string): string {
         data.network.forEach((item) => {
           networkSection.appendChild(card(
             '<strong>' + item.phase + '</strong><pre>' + JSON.stringify(item, null, 2) + '</pre>'
+          ));
+        });
+
+        data.domSnapshots.forEach((item) => {
+          domSection.appendChild(card(
+            '<strong>snapshot</strong><pre>' + JSON.stringify(item, null, 2) + '</pre>'
           ));
         });
 

@@ -1,3 +1,3 @@
 display_name: cli-skill
-short_description: 创建、接通、安装和录制 cli skill 的操作说明
-default_prompt: 使用 $cli-skill 帮我创建、注册、安装或录制一个 cli skill。
+short_description: 把流程做成技能，或维护已有技能项目
+default_prompt: 使用 $cli-skill 帮我把一个流程做成技能，或者修改、录制、挂载、安装、发布一个已有技能项目。
