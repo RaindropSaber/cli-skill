@@ -17,6 +17,11 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
   let isRecording = false;
   let mounted = false;
   let collapsed = false;
+  let domObserver;
+  let domFlushTimer = null;
+  let domCooldownTimer = null;
+  let pendingDomTarget = null;
+  let lastDomFingerprint = "";
 
   function selectorFor(element) {
     if (!(element instanceof Element)) return undefined;
@@ -49,9 +54,178 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
     return text.length > 120 ? text.slice(0, 117) + "..." : text || undefined;
   }
 
+  function attr(element, name) {
+    return element instanceof Element ? element.getAttribute(name) || undefined : undefined;
+  }
+
+  function inferredRole(element) {
+    if (!(element instanceof Element)) return undefined;
+    const explicitRole = attr(element, "role");
+    if (explicitRole) return explicitRole;
+
+    const tag = element.tagName.toLowerCase();
+    if (tag === "button") return "button";
+    if (tag === "a" && element.getAttribute("href")) return "link";
+    if (tag === "select") return "combobox";
+    if (tag === "textarea") return "textbox";
+    if (tag === "input") {
+      const type = (element.getAttribute("type") || "text").toLowerCase();
+      if (type === "checkbox") return "checkbox";
+      if (type === "radio") return "radio";
+      if (type === "number") return "spinbutton";
+      if (type === "search") return "searchbox";
+      if (type === "submit" || type === "button") return "button";
+      return "textbox";
+    }
+    return undefined;
+  }
+
+  function labelFor(element) {
+    if (!(element instanceof HTMLElement)) return undefined;
+    if ("labels" in element && element.labels && element.labels.length > 0) {
+      const text = Array.from(element.labels)
+        .map((item) => (item.innerText || item.textContent || "").trim())
+        .filter(Boolean)
+        .join(" ");
+      if (text) return text.replace(/\\s+/g, " ");
+    }
+    const ariaLabel = attr(element, "aria-label");
+    if (ariaLabel) return ariaLabel;
+    const closestLabel = element.closest("label");
+    if (closestLabel) {
+      const text = (closestLabel.innerText || closestLabel.textContent || "").trim().replace(/\\s+/g, " ");
+      if (text) return text;
+    }
+    return undefined;
+  }
+
+  function nameFor(element) {
+    if (!(element instanceof HTMLElement)) return undefined;
+    return (
+      attr(element, "aria-label") ||
+      labelFor(element) ||
+      attr(element, "placeholder") ||
+      textFor(element)
+    );
+  }
+
+  function htmlSnippetFor(element) {
+    if (!(element instanceof Element)) return undefined;
+    const html = element.outerHTML.replace(/\\s+/g, " ").trim();
+    return html.length > 240 ? html.slice(0, 237) + "..." : html;
+  }
+
+  function primaryContainerFor(node) {
+    const element = node instanceof Element
+      ? node
+      : node instanceof Text
+        ? node.parentElement
+        : null;
+    const selectors = [
+      '[role="dialog"]',
+      ".n-modal",
+      ".n-drawer",
+      ".n-popover",
+      '[role="listbox"]',
+      '[role="menu"]',
+      "form",
+      "main",
+      "body",
+    ];
+    for (const selector of selectors) {
+      const found = element?.closest?.(selector) || document.querySelector(selector);
+      if (found instanceof Element) return found;
+    }
+    return document.body;
+  }
+
+  function fingerprintFor(html) {
+    return html.replace(/\\s+/g, " ").trim().slice(0, 4000);
+  }
+
+  async function flushDomSnapshot() {
+    domFlushTimer = null;
+    if (!isRecording || !pendingDomTarget) return;
+    const container = primaryContainerFor(pendingDomTarget);
+    pendingDomTarget = null;
+    if (!(container instanceof Element)) return;
+    if (container.closest("#" + ROOT_ID)) return;
+    const html = (container.outerHTML || "").trim();
+    if (!html) return;
+    const fingerprint = fingerprintFor(html);
+    if (fingerprint === lastDomFingerprint) return;
+    lastDomFingerprint = fingerprint;
+    try {
+      await window.__cliSkillRecorderDomSnapshot({
+        timestamp: new Date().toISOString(),
+        url: location.href,
+        title: document.title,
+        html,
+        targetSelector: selectorFor(container),
+        targetText: textFor(container),
+      });
+    } catch {}
+  }
+
+  function queueDomSnapshot(target) {
+    if (!isRecording) return;
+    if (target instanceof Element && target.closest("#" + ROOT_ID)) return;
+    pendingDomTarget = target || document.body;
+    if (domCooldownTimer) return;
+    if (domFlushTimer) clearTimeout(domFlushTimer);
+    domFlushTimer = setTimeout(() => {
+      void flushDomSnapshot();
+      domCooldownTimer = setTimeout(() => {
+        domCooldownTimer = null;
+        if (pendingDomTarget) {
+          queueDomSnapshot(pendingDomTarget);
+        }
+      }, 800);
+    }, 200);
+  }
+
+  function setupDomObserver() {
+    if (domObserver || !document.body) return;
+    domObserver = new MutationObserver((mutations) => {
+      if (!isRecording) return;
+      for (const mutation of mutations) {
+        const target = mutation.target;
+        const targetElement = target instanceof Element
+          ? target
+          : target instanceof Text
+            ? target.parentElement
+            : null;
+        if (targetElement?.closest?.("#" + ROOT_ID)) continue;
+        if (mutation.type === "childList") {
+          const added = Array.from(mutation.addedNodes).find((node) => {
+            const element = node instanceof Element ? node : node instanceof Text ? node.parentElement : null;
+            return element && !element.closest?.("#" + ROOT_ID);
+          });
+          queueDomSnapshot(added || targetElement || document.body);
+          return;
+        }
+        queueDomSnapshot(targetElement || document.body);
+        return;
+      }
+    });
+    domObserver.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
+  }
+
   async function emitAction(type, target, extra) {
     if (!isRecording) return;
     if (target instanceof Element && target.closest("#" + ROOT_ID)) return;
+    const role = target instanceof Element ? inferredRole(target) : undefined;
+    const label = target instanceof HTMLElement ? labelFor(target) : undefined;
+    const placeholder = target instanceof Element ? attr(target, "placeholder") : undefined;
+    const text = target instanceof Element ? textFor(target) : undefined;
+    const testId = target instanceof Element
+      ? attr(target, "data-testid") || attr(target, "data-test-id") || attr(target, "data-test")
+      : undefined;
     await window.__cliSkillRecorderAction({
       type,
       timestamp: new Date().toISOString(),
@@ -59,7 +233,24 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
       title: document.title,
       tagName: target instanceof Element ? target.tagName.toLowerCase() : undefined,
       selector: target instanceof Element ? selectorFor(target) : undefined,
-      text: target instanceof Element ? textFor(target) : undefined,
+      text,
+      role,
+      nameAttr: target instanceof Element ? attr(target, "name") : undefined,
+      typeAttr: target instanceof Element ? attr(target, "type") : undefined,
+      placeholder,
+      label,
+      ariaLabel: target instanceof Element ? attr(target, "aria-label") : undefined,
+      testId,
+      href: target instanceof Element ? attr(target, "href") : undefined,
+      htmlSnippet: target instanceof Element ? htmlSnippetFor(target) : undefined,
+      locatorHints: target instanceof Element ? {
+        role,
+        name: nameFor(target),
+        label,
+        placeholder,
+        testId,
+        text,
+      } : undefined,
       ...extra
     });
   }
@@ -67,7 +258,15 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
   function applyState(nextState) {
     isRecording = !!nextState?.active;
     state.textContent = isRecording ? "录制中" : "待开始";
-    toggleButton.textContent = isRecording ? "停止" : "开始";
+    toggleButton.textContent = isRecording ? "停止录制" : "开始录制";
+    toggleButton.style.background = isRecording ? "linear-gradient(180deg, #dc2626, #b91c1c)" : "linear-gradient(180deg, #ef4444, #dc2626)";
+    toggleButton.style.color = "#fff";
+    toggleButton.style.boxShadow = isRecording
+      ? "0 10px 24px rgba(185, 28, 28, 0.34)"
+      : "0 10px 24px rgba(220, 38, 38, 0.28)";
+    if (isRecording) {
+      setupDomObserver();
+    }
   }
 
   async function syncState() {
@@ -117,7 +316,7 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
     return button;
   }
 
-  const toggleButton = makeButton("开始");
+  const toggleButton = makeButton("开始录制");
   const reviewButton = makeButton("打开录制页");
   const keyframeButton = makeButton("关键帧");
   const collapseButton = makeButton("收起");
@@ -139,8 +338,7 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
     if (isRecording) {
       toggleButton.disabled = true;
       try {
-        const openReview = window.confirm("录制已停止，是否打开录制页继续查看或编辑？");
-        const result = await window.__cliSkillRecorderStop({ openReview });
+        const result = await window.__cliSkillRecorderStop({});
         applyState(result);
       } finally {
         toggleButton.disabled = false;
@@ -194,9 +392,13 @@ export function getOverlayScript(sessionId: string, reviewUrl: string): string {
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", mountOverlay, { once: true });
+    document.addEventListener("DOMContentLoaded", () => {
+      mountOverlay();
+      setupDomObserver();
+    }, { once: true });
   } else {
     mountOverlay();
+    setupDomObserver();
   }
 
   window.addEventListener("pageshow", () => {

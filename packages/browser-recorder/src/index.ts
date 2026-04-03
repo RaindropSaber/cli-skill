@@ -6,10 +6,13 @@ import {
   appendJsonLine,
   createRecorderSessionPaths,
   createSummary,
+  createTimeline,
+  writeDomSnapshots,
   writeJson,
   writeKeyframes,
   writeSummary,
   writeText,
+  writeTimeline,
 } from "./storage.js";
 import { getOverlayScript } from "./page/overlay.js";
 import { getRecordPageHtml } from "./page/record.js";
@@ -17,6 +20,7 @@ import { getReviewPageHtml } from "./page/review.js";
 import type {
   BrowserRecorderResult,
   RecorderActionRecord,
+  RecorderDomSnapshotRecord,
   RecorderKeyframeRecord,
   RecorderNetworkRecord,
 } from "./types.js";
@@ -30,9 +34,7 @@ interface ToggleResult {
   active: boolean;
 }
 
-interface FinishPayload {
-  openReview: boolean;
-}
+interface FinishPayload {}
 
 interface KeyframePayload {
   timestamp: string;
@@ -40,11 +42,21 @@ interface KeyframePayload {
   title?: string;
 }
 
+interface DomSnapshotPayload {
+  timestamp: string;
+  url: string;
+  title?: string;
+  html: string;
+  targetSelector?: string;
+  targetText?: string;
+}
+
 interface BindingSourceLike {
   page?: Page;
 }
 
 const RESPONSE_PREVIEW_LIMIT = 4_000;
+type StopReason = BrowserRecorderResult["stopReason"];
 
 function createId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -89,6 +101,7 @@ export async function startBrowserRecorder(
   const actions: RecorderActionRecord[] = [];
   const network: RecorderNetworkRecord[] = [];
   const keyframes: RecorderKeyframeRecord[] = [];
+  const domSnapshots: RecorderDomSnapshotRecord[] = [];
 
   let browser: Browser | null = null;
   let context: BrowserContext | null = null;
@@ -101,6 +114,9 @@ export async function startBrowserRecorder(
   let resolved = false;
   let finalizing = false;
   let serverPort = 0;
+  let shutdownPromise: Promise<void> | null = null;
+  let serverClosed = false;
+  let stopReason: StopReason | null = null;
   const trackedPages = new Set<Page>();
 
   const server = createServer(async (request, response) => {
@@ -132,12 +148,16 @@ export async function startBrowserRecorder(
         actions,
         network,
         keyframes,
+        domSnapshots,
         paths,
       });
+      const timeline = createTimeline({ actions, network });
       respondJson(response, {
         summary,
+        timeline,
         actions,
         network,
+        domSnapshots,
         keyframes: keyframes.map((item) => ({
           ...item,
           screenshotUrl: `/assets/${path.basename(item.screenshotPath)}`,
@@ -194,6 +214,8 @@ export async function startBrowserRecorder(
   await writeText(paths.actionsPath, "");
   await writeText(paths.networkPath, "");
   await writeKeyframes(paths.keyframesPath, keyframes);
+  await writeDomSnapshots(paths.domSnapshotsPath, domSnapshots);
+  await writeTimeline(paths.timelinePath, []);
   await writeSummary(paths.summaryPath, createSummary({
     sessionId,
     recordingDir: paths.recordingDir,
@@ -204,8 +226,14 @@ export async function startBrowserRecorder(
     actions,
     network,
     keyframes,
+    domSnapshots,
     paths,
   }));
+
+  async function persistDerivedArtifacts() {
+    await writeDomSnapshots(paths.domSnapshotsPath, domSnapshots);
+    await writeTimeline(paths.timelinePath, createTimeline({ actions, network }));
+  }
 
   async function persistResult() {
     finalUrl = page?.url() ?? finalUrl;
@@ -229,8 +257,10 @@ export async function startBrowserRecorder(
       actions,
       network,
       keyframes,
+      domSnapshots,
       paths,
     });
+    await persistDerivedArtifacts();
     await writeSummary(paths.summaryPath, summary);
     await writeJson(paths.metaPath, {
       sessionId,
@@ -276,6 +306,76 @@ export async function startBrowserRecorder(
     });
   }
 
+  async function captureDomSnapshot(
+    targetPage: Page,
+    trigger?: { actionId?: string; type?: RecorderActionRecord["type"]; selector?: string; text?: string },
+  ) {
+    const snapshotId = createId("dom");
+    const htmlPath = path.join(paths.domDir, `${snapshotId}.html`);
+    const snapshot = await targetPage.evaluate(() => {
+      function findPrimaryContainer(): Element | null {
+        const selectors = [
+          '[role="dialog"]',
+          ".n-modal",
+          ".n-drawer",
+          ".n-popover",
+          "form",
+          "main",
+          "body",
+        ];
+        for (const selector of selectors) {
+          const node = document.querySelector(selector);
+          if (node) return node;
+        }
+        return document.body;
+      }
+
+      const container = findPrimaryContainer();
+      return {
+        url: location.href,
+        title: document.title,
+        html: (container?.outerHTML || document.body?.outerHTML || "").trim(),
+      };
+    });
+
+    await writeText(htmlPath, snapshot.html);
+    const record: RecorderDomSnapshotRecord = {
+      id: snapshotId,
+      timestamp: new Date().toISOString(),
+      url: snapshot.url,
+      title: snapshot.title,
+      triggerActionId: trigger?.actionId,
+      triggerType: trigger?.type,
+      targetSelector: trigger?.selector,
+      targetText: trigger?.text,
+      htmlPath,
+    };
+    domSnapshots.push(record);
+    await persistDerivedArtifacts();
+  }
+
+  async function persistDomSnapshot(
+    payload: DomSnapshotPayload,
+    trigger?: { actionId?: string; type?: RecorderActionRecord["type"] | "mutation"; selector?: string; text?: string },
+  ) {
+    const snapshotId = createId("dom");
+    const htmlPath = path.join(paths.domDir, `${snapshotId}.html`);
+    await writeText(htmlPath, payload.html);
+    const record: RecorderDomSnapshotRecord = {
+      id: snapshotId,
+      timestamp: payload.timestamp,
+      url: payload.url,
+      title: payload.title,
+      triggerActionId: trigger?.actionId,
+      triggerType: trigger?.type,
+      targetSelector: trigger?.selector ?? payload.targetSelector,
+      targetText: trigger?.text ?? payload.targetText,
+      htmlPath,
+    };
+    domSnapshots.push(record);
+    await persistDerivedArtifacts();
+  }
+
   async function finalizeResult() {
     if (resolved) {
       return;
@@ -288,7 +388,39 @@ export async function startBrowserRecorder(
       recordingDir: paths.recordingDir,
       reviewUrl,
       summaryPath: paths.summaryPath,
+      stopReason: stopReason ?? "browser_closed",
     });
+  }
+
+  async function closeServer(): Promise<void> {
+    if (serverClosed) {
+      return;
+    }
+    serverClosed = true;
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+
+  async function shutdown(reason: StopReason, options?: { closeBrowser?: boolean }): Promise<void> {
+    if (shutdownPromise) {
+      return shutdownPromise;
+    }
+
+    stopReason ??= reason;
+
+    shutdownPromise = (async () => {
+      try {
+        await finalizeResult();
+      } finally {
+        await closeServer();
+        if (options?.closeBrowser !== false && browser?.isConnected()) {
+          await browser.close().catch(() => undefined);
+        }
+      }
+    })();
+
+    return shutdownPromise;
   }
 
   try {
@@ -328,7 +460,7 @@ export async function startBrowserRecorder(
   });
   await context.exposeBinding(
     "__cliSkillRecorderStop",
-    async (source: BindingSourceLike, payload: FinishPayload) => {
+    async (source: BindingSourceLike, _payload: FinishPayload) => {
       if (finalizing) {
         return currentState();
       }
@@ -341,16 +473,11 @@ export async function startBrowserRecorder(
       finalUrl = targetPage?.url() ?? finalUrl;
       await persistResult();
 
-      if (payload.openReview && targetPage) {
-        await targetPage.goto(reviewUrl);
-        page = targetPage;
-        finalizing = false;
-        return currentState();
-      }
+      stopReason = "user_stop";
 
-      // Close asynchronously so the page-side binding can resolve cleanly.
+      // Resolve the page-side binding first, then tear everything down explicitly.
       queueMicrotask(() => {
-        void browser?.close();
+        void shutdown("user_stop");
       });
       return currentState();
     },
@@ -368,6 +495,17 @@ export async function startBrowserRecorder(
       };
       actions.push(nextRecord);
       await appendJsonLine(paths.actionsPath, nextRecord);
+
+      if (_source.page && nextRecord.type === "click") {
+        queueMicrotask(() => {
+          void captureDomSnapshot(_source.page!, {
+            actionId: nextRecord.id,
+            type: nextRecord.type,
+            selector: nextRecord.selector,
+            text: nextRecord.text,
+          }).catch(() => undefined);
+        });
+      }
     },
   );
   await context.exposeBinding(
@@ -390,6 +528,19 @@ export async function startBrowserRecorder(
       };
       keyframes.push(record);
       await writeKeyframes(paths.keyframesPath, keyframes);
+    },
+  );
+  await context.exposeBinding(
+    "__cliSkillRecorderDomSnapshot",
+    async (_source: BindingSourceLike, payload: DomSnapshotPayload) => {
+      if (!active || !payload.html?.trim()) {
+        return;
+      }
+      await persistDomSnapshot(payload, {
+        type: "mutation",
+        selector: payload.targetSelector,
+        text: payload.targetText,
+      });
     },
   );
   page = await context.newPage();
@@ -447,16 +598,26 @@ export async function startBrowserRecorder(
     await appendJsonLine(paths.networkPath, record);
   });
 
-  browser.on("disconnected", async () => {
-    await finalizeResult();
-    server.close();
+  browser.on("disconnected", () => {
+    if (!shutdownPromise) {
+      finalizing = true;
+      active = false;
+      endedAt ??= new Date().toISOString();
+      finalUrl = page?.url() ?? finalUrl;
+      void shutdown("browser_closed", { closeBrowser: false });
+    }
   });
 
   await page.goto(recordUrl);
 
-  return await new Promise<BrowserRecorderResult>((resolve) => {
-    resolveResult = resolve;
-  });
+  try {
+    return await new Promise<BrowserRecorderResult>((resolve) => {
+      resolveResult = resolve;
+    });
+  } catch (error) {
+    stopReason = "error";
+    throw error;
+  }
 }
 
 export * from "./types.js";

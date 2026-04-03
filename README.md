@@ -1,133 +1,89 @@
 # cli-skill
 
-`cli-skill` 是一套面向 agent skill 的开发工具链。
+`cli-skill` 是一套把可重复流程沉淀成 agent 可用技能的工具链。
 
-它解决的不是单个脚本怎么跑，而是整条 skill 生命周期怎么建立起来：
+它解决的是一整条链路：
 
-- 在本地创建一个 skill 项目
-- 用统一模型定义 skill 和 tool
+- 从零创建一个技能项目
+- 在本地实现和调试工具
 - 生成 agent 可读的 `skill/` 产物
-- 在本机接通、安装、挂载和发布 skill
-- 在浏览器场景里录制真实操作，并把结果交给 AI 分析，进一步生成可复用的 tool
+- 安装、挂载、发布技能
+- 在浏览器场景里录制真实操作，再交给 AI 分析并整理成工具
 
-## 适合做什么
+## 亮点
 
-`cli-skill` 适合把一段可重复的能力收成一个 skill。
+### 统一的技能项目模型
 
-这类能力可以是：
+所有技能项目都围绕同一套结构工作：
 
-- 浏览器自动化
-- API 调用
-- 文件或本地工具编排
-- 面向某个业务系统的一组专用工具
+- `src/index.ts` 定义技能
+- `src/tools/*` 实现工具
+- `src/skill/*` 维护文档模板
+- 根目录 `skill/*` 生成最终产物
 
-当前仓库已经把浏览器能力作为第一类场景接进来了，包括：
+这让新技能、已有技能维护、技能发布都能走同一套流程。
 
-- browser runtime
-- browser recorder
-- 录制结果落盘
-- 面向“录制内容 + AI 分析 + 提示词 => tool”的工作流基础
+### 本地到 agent 的完整闭环
 
-## 核心模型
+`cli-skill` 不只是脚手架。它还负责：
 
-这个项目里有三个核心对象：
+- 管理本机技能注册表
+- 安装和卸载已发布技能
+- 挂载技能到 agent 目录
+- 通过统一命令执行工具
 
-- `tool`
-  - 真正执行动作的最小单元
+这样一个技能从本地开发到真正给 agent 使用，中间不需要再拼额外流程。
+
+### 浏览器录制优先
+
+浏览器场景不需要一开始就猜脚本。
+
+`cli-skill browser record` 可以先录下真实操作，再保留：
+
+- 用户行为
+- 网络请求
+- DOM 快照
+- 关键帧
+- 时间线
+
+这些结果可以继续交给 AI，用来判断哪些步骤值得沉淀成工具，哪些更适合 DOM 自动化，哪些更适合直接走接口。
+
+### 适合持续演进
+
+这个仓库不是围绕某一个业务技能写死的。它更适合搭建一套长期可维护的技能体系，例如：
+
+- 浏览器自动化技能
+- API 编排技能
+- 本地文件或命令工具技能
+- 面向具体业务系统的一组专用技能
+
+## 适合谁
+
+`cli-skill` 适合这些人：
+
+- 想把一段重复流程做成 agent 可用技能的人
+- 想维护一组内部业务工具的人
+- 想先录制浏览器操作，再逐步沉淀成工具的人
+- 想把技能项目本地开发、发布和挂载接在一起的人
+
+## 项目结构
+
+- `packages/cli`
+  - 平台命令入口。负责创建项目、构建产物、安装、挂载、发布、录制等工作流。
+  - 说明见 [packages/cli/README.md](./packages/cli/README.md)
+- `packages/core`
+  - 技能定义、工具定义、插件能力和运行时模型。
+  - 说明见 [packages/core/README.md](./packages/core/README.md)
+- `packages/browser-recorder`
+  - 浏览器录制服务、录制页和录制产物。
+  - 说明见 [packages/browser-recorder/README.md](./packages/browser-recorder/README.md)
+- `packages/templates`
+  - 新技能项目模板。
+  - 说明见 [packages/templates/README.md](./packages/templates/README.md)
 - `skill`
-  - 对 tools 的组织与说明
-- `skill/`
-  - 生成给 agent 使用的产物目录
-
-一个标准 skill 项目包含两部分：
-
-源码：
-
-- `src/index.ts`
-- `src/tools/*`
-- `src/skill/*`
-
-产物：
-
-- `skill/SKILL.md`
-- `skill/agents/openai.yaml`
-
-也就是说，`src/skill/*` 是模板源目录，根目录 `skill/*` 是构建产物。
-
-## 命令模型
-
-`cli-skill` 分成三类命令：
-
-平台命令：
-
-- `cli-skill create <skillName> --cli-name <cliName>`
-- `cli-skill list`
-- `cli-skill install <skillName> [--packageName <packageName>]`
-- `cli-skill uninstall <packageName>`
-- `cli-skill config get [keyPath]`
-- `cli-skill config set <keyPath> <value>`
-- `cli-skill browser record`
-
-当前 skill 目录命令：
-
-- `cli-skill tools`
-- `cli-skill run <toolName> [rawInput]`
-- `cli-skill config get [keyPath]`
-- `cli-skill config set <keyPath> <value>`
-- `cli-skill config unset <keyPath>`
-- `cli-skill build`
-- `cli-skill mount [targetPath]`
-- `cli-skill unmount [targetPath]`
-- `cli-skill publish [--dry-run] [--tag <tag>]`
-
-已注册 skill 执行命令：
-
-- `cli-skill exec <skillName> <toolName> [rawInput]`
-
-生成出来的 skill 仍然会保留自己的 bin，例如：
-
-- `my-skill list`
-- `my-skill run <tool>`
-- `my-skill <tool>`
-
-但它只是一个薄转发层。项目级命令仍然通过 `cli-skill` 使用。
-
-## 浏览器录制
-
-浏览器录制的入口是：
-
-```bash
-cli-skill browser record
-```
-
-录制会启动一个本地服务和一套受控浏览器，并提供：
-
-- 悬浮操作区
-- 录制页
-- 用户行为记录
-- 网络请求记录
-- 关键帧快照
-
-录制的目标不是简单回放，而是沉淀一份结构化的上下文，让 AI 能基于：
-
-- 用户做了什么
-- 页面发生了什么
-- 请求发到了哪里
-
-进一步分析哪些步骤适合收敛成一个 tool。
-
-默认目录约定：
-
-- 浏览器共享 storage：
-  - `~/.cli-skill/browser/storage`
-- 浏览器录制结果：
-  - `~/.cli-skill/browser-recorder/<timestamp>`
-
-这样浏览器录制和真正运行 browser tool 可以共享登录态。
+  - 这个仓库自己的技能说明与参考资料，供 agent 使用。
 
 ## 快速开始
-
-### 创建一个 skill
 
 ```bash
 cli-skill create my-skill --cli-name my-skill
@@ -137,51 +93,11 @@ cli-skill build
 cli-skill mount
 ```
 
-### 运行当前目录里的 tool
-
-```bash
-cli-skill run <tool-name> '{"foo":"bar"}'
-```
-
-### 执行一个已注册的 skill
-
-```bash
-cli-skill exec <skill-name> <tool-name> '{"foo":"bar"}'
-```
-
-### 开始一次浏览器录制
+浏览器录制：
 
 ```bash
 cli-skill browser record
 ```
-
-## 本地目录约定
-
-- 当前目录创建的 skill：
-  - `./<skill-name>`
-- 已安装 skill：
-  - `~/.cli-skill/skills`
-- 本地注册表：
-  - `~/.cli-skill/registry.json`
-- agent 默认目录：
-  - `~/.agents/skills`
-- 浏览器共享 storage：
-  - `~/.cli-skill/browser/storage`
-- 浏览器录制目录：
-  - `~/.cli-skill/browser-recorder`
-
-## 仓库组成
-
-- `skill`
-  - 这个仓库自己的 agent skill 与参考资料
-- `packages/cli`
-  - 平台 CLI，负责 create、build、install、mount、publish、record 等命令
-- `packages/core`
-  - `defineSkill`、`defineTool`、plugin runtime、tool 执行模型
-- `packages/browser-recorder`
-  - 浏览器录制服务、录制页和录制产物
-- `packages/templates`
-  - 新 skill 项目的模板
 
 ## 开发
 

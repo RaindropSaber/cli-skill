@@ -76,6 +76,7 @@ export function getRecordPageHtml(sessionId: string, reviewUrl: string): string 
         margin-top: 28px;
       }
       .actions a {
+        border: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -87,12 +88,21 @@ export function getRecordPageHtml(sessionId: string, reviewUrl: string): string 
         font-weight: 700;
       }
       .actions a.primary {
-        background: #0f172a;
+        gap: 10px;
+        background: linear-gradient(180deg, #ef4444, #dc2626);
         color: #fff;
+        box-shadow: 0 14px 30px rgba(220, 38, 38, 0.28);
       }
       .actions a.secondary {
         background: #e2e8f0;
         color: #0f172a;
+      }
+      .record-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18);
       }
       code {
         font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -121,9 +131,32 @@ export function getRecordPageHtml(sessionId: string, reviewUrl: string): string 
         </div>
       </div>
       <div class="actions">
-        <a class="primary" href="${reviewUrl}">打开录制页</a>
+        <a class="primary" href="#" id="start-recording-button"><span class="record-dot"></span><span>开始录制</span></a>
+        <a class="secondary" href="${reviewUrl}">打开录制页</a>
       </div>
     </main>
+    <script>
+      const startButton = document.getElementById("start-recording-button");
+      if (startButton) {
+        startButton.addEventListener("click", async (event) => {
+          event.preventDefault();
+          if (startButton.dataset.loading === "1") return;
+          startButton.dataset.loading = "1";
+          try {
+            if (window.__cliSkillRecorderGetState && window.__cliSkillRecorderToggle) {
+              const current = await window.__cliSkillRecorderGetState();
+              if (!current?.active) {
+                await window.__cliSkillRecorderToggle();
+              }
+            }
+            startButton.innerHTML = '<span class="record-dot"></span><span>录制中</span>';
+          } catch {}
+          finally {
+            startButton.dataset.loading = "0";
+          }
+        });
+      }
+    </script>
   </body>
 </html>`;
 }
