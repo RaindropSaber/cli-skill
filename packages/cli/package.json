@@ -17,6 +17,7 @@
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {
+    "@cli-skill/browser-recorder": "^0.0.3-beta.20260402154312",
     "@cli-skill/core": "^0.0.3-beta.20260402154312",
     "cac": "^6.7.14",
     "lodash": "^4.17.21",

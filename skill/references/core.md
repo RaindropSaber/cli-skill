@@ -225,7 +225,7 @@ skill 项目默认只依赖 `@cli-skill/core`。平台 CLI 通过全局安装的
 
 优先回到主 skill 文档：
 
-- [SKILL.md](/Users/bin.jia1/work/github/cli-skill/packages/cli/skill/SKILL.md)
+- [SKILL.md](/Users/bin.jia1/work/github/cli-skill/skill/SKILL.md)
 
 这里更适合解决：
 

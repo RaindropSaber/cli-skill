@@ -124,8 +124,15 @@ export async function createRuntime<Skill extends AnySkill = AnySkill>(
       : {};
   const configAccessor = createSkillConfigAccessor(resolvedSkillConfig);
   const defaultStorageRoot =
+    globalConfig.browserStorageRoot;
+  const fallbackProjectStorageRoot =
     options.skill?.rootDir ? path.join(options.skill.rootDir, "storage") : path.join(process.cwd(), "storage");
-  const paths = getRuntimePaths(options.storageRoot ?? skillConfig?.storageRoot ?? defaultStorageRoot);
+  const paths = getRuntimePaths(
+    options.storageRoot ??
+      skillConfig?.storageRoot ??
+      defaultStorageRoot ??
+      fallbackProjectStorageRoot,
+  );
   const storageStatePath = options.storageStatePath ?? path.join(paths.authDir, "user.json");
 
   await mkdir(path.dirname(storageStatePath), { recursive: true });
