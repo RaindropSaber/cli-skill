@@ -9,8 +9,9 @@ export interface BrowserSkillCliConfig {
   skillsRoot?: string;
   installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
-  browserStorageRoot?: string;
-  browserProfileRoot?: string;
+  browserExecutablePath?: string;
+  browserUserDataDir?: string;
+  browserSourceUserDataDir?: string;
   skillConfig?: Record<string, Record<string, unknown>>;
 }
 
@@ -48,20 +49,25 @@ export async function loadBrowserSkillCliConfig(): Promise<BrowserSkillCliConfig
 }
 
 export function getDefaultBrowserSkillCliConfig(): Required<
-  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "browserProfileRoot" | "skillConfig">
+  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir" | "skillConfig">
 > {
+  const systemChromeSourceUserDataDir =
+    process.platform === "darwin"
+      ? path.join(getUserHome(), "Library", "Application Support", "Google", "Chrome", "Default")
+      : "";
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
     installedSkillsRoot: path.join(getBrowserSkillHome(), "installed"),
     agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
-    browserStorageRoot: path.join(getBrowserSkillHome(), "browser", "storage"),
-    browserProfileRoot: path.join(getBrowserSkillHome(), "browser", "profile"),
+    browserExecutablePath: "",
+    browserUserDataDir: path.join(getBrowserSkillHome(), "browser", "user-data"),
+    browserSourceUserDataDir: systemChromeSourceUserDataDir,
     skillConfig: {},
   };
 }
 
 export async function getResolvedBrowserSkillCliConfig(): Promise<
-  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "browserProfileRoot">> &
+  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
     BrowserSkillCliConfig
 > {
   const config = await loadBrowserSkillCliConfig();
@@ -73,8 +79,9 @@ export async function getResolvedBrowserSkillCliConfig(): Promise<
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
     installedSkillsRoot: resolveUserPath(config.installedSkillsRoot ?? defaults.installedSkillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
-    browserStorageRoot: resolveUserPath(config.browserStorageRoot ?? defaults.browserStorageRoot),
-    browserProfileRoot: resolveUserPath(config.browserProfileRoot ?? defaults.browserProfileRoot),
+    browserExecutablePath: resolveUserPath(config.browserExecutablePath ?? defaults.browserExecutablePath),
+    browserUserDataDir: resolveUserPath(config.browserUserDataDir ?? defaults.browserUserDataDir),
+    browserSourceUserDataDir: resolveUserPath(config.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir),
   };
 }
 
@@ -86,12 +93,12 @@ export async function ensureBrowserSkillCliConfig(): Promise<string> {
     const raw = await readFile(configPath, "utf8");
     const parsed = (JSON.parse(raw) as BrowserSkillCliConfig) ?? {};
     const nextConfig: BrowserSkillCliConfig = {
-      ...parsed,
       skillsRoot: parsed.skillsRoot ?? defaults.skillsRoot,
       installedSkillsRoot: parsed.installedSkillsRoot ?? defaults.installedSkillsRoot,
       agentsSkillsRoot: parsed.agentsSkillsRoot ?? defaults.agentsSkillsRoot,
-      browserStorageRoot: parsed.browserStorageRoot ?? defaults.browserStorageRoot,
-      browserProfileRoot: parsed.browserProfileRoot ?? defaults.browserProfileRoot,
+      browserExecutablePath: parsed.browserExecutablePath ?? defaults.browserExecutablePath,
+      browserUserDataDir: parsed.browserUserDataDir ?? defaults.browserUserDataDir,
+      browserSourceUserDataDir: parsed.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir,
       skillConfig: parsed.skillConfig ?? defaults.skillConfig,
     };
 

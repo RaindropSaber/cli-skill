@@ -29,8 +29,11 @@ export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
     let context: BrowserContext;
 
     try {
-      context = await chromium.launchPersistentContext(ctx.paths.browserProfileDir, {
+      context = await chromium.launchPersistentContext(ctx.paths.browserUserDataDir, {
         headless: options.headed !== true,
+        executablePath: options.browserExecutablePath || options.globalConfig.browserExecutablePath || undefined,
+        viewport: { width: 1440, height: 960 },
+        args: ["--window-size=1440,960"],
       });
     } catch (error) {
       if (isMissingBrowserExecutableError(error)) {

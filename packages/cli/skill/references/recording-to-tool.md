@@ -57,9 +57,9 @@
 优先按这个顺序看：
 
 1. `summary.json`
-2. `timeline.json`
+2. `timeline.jsonl`
 3. `actions.jsonl`
-4. `dom-snapshots.json` 和 `dom/*.html`
+4. `dom.jsonl`
 5. `network.jsonl`
 
 它们分别回答：
@@ -68,14 +68,29 @@
   - 录制是否完整结束
   - 最后停在哪个页面
   - 这次大概有多少动作、请求、DOM 快照
-- `timeline.json`
+- `timeline.jsonl`
   - 整条流程的主线
+  - AI 默认先读它
 - `actions.jsonl`
   - 用户显式做了什么
-- `dom/*.html`
-  - 关键时刻页面结构是什么
+  - `timeline.jsonl` 里的 `action`、`navigation`、`tab_switch` 事件通过 `actionId` 指到这里
+- `dom.jsonl`
+  - 页面在哪些点发生了结构变化
+  - `timeline.jsonl` 里的 `dom_changed` 事件通过 `domSnapshotId` 指到这里
 - `network.jsonl`
   - 后台真实完成了什么业务动作
+  - `timeline.jsonl` 里的 `request_started`、`request_finished` 事件通过 `networkId` 指到这里
+
+默认阅读顺序是：
+
+1. 先看 `summary.json`
+   - 判断录制是否完整、最后停在哪个页面
+2. 再看 `timeline.jsonl`
+   - 按时间理解整条流程
+3. 只有在某个时间点需要更多上下文时，再按事件里的 id 去查对应明细
+   - `actionId` -> `actions.jsonl`
+   - `domSnapshotId` -> `dom.jsonl`
+   - `networkId` -> `network.jsonl`
 
 ## 第三步：先写“用户做了什么”
 
@@ -154,7 +169,7 @@
   - 用户输入了什么
 - `network.jsonl`
   - 请求体里最终提交了什么
-- `dom/*.html`
+- `dom.jsonl`
   - 表单里还有哪些字段存在
 
 默认原则：

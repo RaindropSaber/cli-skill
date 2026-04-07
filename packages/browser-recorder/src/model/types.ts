@@ -8,8 +8,8 @@ export interface RecorderLocatorHints {
 }
 
 export interface RecorderActionRecord {
-  id: string;
-  type: "click" | "input" | "change" | "submit" | "navigate";
+  actionId: string;
+  type: "click" | "input" | "change" | "submit" | "navigate" | "tab_switch";
   timestamp: string;
   url: string;
   title?: string;
@@ -30,7 +30,7 @@ export interface RecorderActionRecord {
 }
 
 export interface RecorderNetworkRecord {
-  id: string;
+  networkId: string;
   phase: "request" | "response";
   timestamp: string;
   url: string;
@@ -43,35 +43,36 @@ export interface RecorderNetworkRecord {
   contentType?: string;
 }
 
-export interface RecorderKeyframeRecord {
-  id: string;
-  timestamp: string;
-  url: string;
-  title?: string;
-  screenshotPath: string;
-}
-
 export interface RecorderDomSnapshotRecord {
-  id: string;
+  domSnapshotId: string;
   timestamp: string;
   url: string;
   title?: string;
   triggerActionId?: string;
   triggerType?: RecorderActionRecord["type"] | "mutation";
-  htmlPath: string;
+  html: string;
   targetSelector?: string;
   targetText?: string;
+  mutationCount?: number;
+  windowStartedAt?: string;
+  windowEndedAt?: string;
 }
 
 export interface RecorderTimelineRecord {
-  id: string;
-  type: "navigate" | "action" | "request";
+  eventId: string;
+  type:
+    | "navigation"
+    | "action"
+    | "request_started"
+    | "request_finished"
+    | "dom_changed";
   timestamp: string;
   title: string;
   detail?: string;
   url?: string;
   actionId?: string;
   networkId?: string;
+  domSnapshotId?: string;
 }
 
 export interface RecorderSummary {
@@ -79,30 +80,54 @@ export interface RecorderSummary {
   startedAt?: string;
   endedAt?: string;
   recordingDir: string;
-  reviewUrl: string;
   finalUrl?: string;
+  stopReason?: BrowserRecorderResult["stopReason"];
   actionCount: number;
   networkCount: number;
-  keyframeCount: number;
   domSnapshotCount: number;
   steps: string[];
   artifacts: {
-    meta: string;
     actions: string;
     network: string;
-    keyframes: string;
-    domSnapshots: string;
-    domDir: string;
+    dom: string;
     timeline: string;
     summary: string;
-    assetsDir: string;
   };
 }
 
 export interface BrowserRecorderResult {
   sessionId: string;
   recordingDir: string;
-  reviewUrl: string;
   summaryPath: string;
   stopReason: "user_stop" | "browser_closed" | "error";
+}
+
+export interface RecorderSessionState {
+  sessionId: string;
+  status: "idle" | "recording" | "stopping" | "finished";
+  active: boolean;
+  startedAt?: string;
+  endedAt?: string;
+  finalUrl?: string;
+  stopReason?: BrowserRecorderResult["stopReason"];
+}
+
+export interface RecorderListItem {
+  id: string;
+  sessionId?: string;
+  recordingDir: string;
+  startedAt?: string;
+  endedAt?: string;
+  finalUrl?: string;
+  actionCount?: number;
+  networkCount?: number;
+  domSnapshotCount?: number;
+}
+
+export interface RecorderExportBundle {
+  summary: RecorderSummary;
+  timeline: RecorderTimelineRecord[];
+  actions: RecorderActionRecord[];
+  network: RecorderNetworkRecord[];
+  domSnapshots: RecorderDomSnapshotRecord[];
 }

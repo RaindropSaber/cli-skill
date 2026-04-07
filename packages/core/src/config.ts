@@ -38,13 +38,18 @@ export async function loadBrowserSkillConfig(): Promise<CliSkillConfig> {
 }
 
 export function getDefaultBrowserSkillConfig(): Required<
-  Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "browserProfileRoot" | "skillConfig">
+  Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir" | "skillConfig">
 > {
+  const systemChromeSourceUserDataDir =
+    process.platform === "darwin"
+      ? path.join(getUserHome(), "Library", "Application Support", "Google", "Chrome", "Default")
+      : "";
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
     agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
-    browserStorageRoot: path.join(getBrowserSkillHome(), "browser", "storage"),
-    browserProfileRoot: path.join(getBrowserSkillHome(), "browser", "profile"),
+    browserExecutablePath: "",
+    browserUserDataDir: path.join(getBrowserSkillHome(), "browser", "user-data"),
+    browserSourceUserDataDir: systemChromeSourceUserDataDir,
     skillConfig: {},
   };
 }
@@ -55,7 +60,7 @@ export async function saveBrowserSkillConfig(config: CliSkillConfig): Promise<vo
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 }
 
-export async function getResolvedBrowserSkillConfig(): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "browserProfileRoot">> & CliSkillConfig> {
+export async function getResolvedBrowserSkillConfig(): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig> {
   const config = await loadBrowserSkillConfig();
   const defaults = getDefaultBrowserSkillConfig();
 
@@ -64,8 +69,9 @@ export async function getResolvedBrowserSkillConfig(): Promise<Required<Pick<Cli
     skillConfig: config.skillConfig ?? defaults.skillConfig,
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
-    browserStorageRoot: resolveUserPath(config.browserStorageRoot ?? defaults.browserStorageRoot),
-    browserProfileRoot: resolveUserPath(config.browserProfileRoot ?? defaults.browserProfileRoot),
+    browserExecutablePath: resolveUserPath(config.browserExecutablePath ?? defaults.browserExecutablePath),
+    browserUserDataDir: resolveUserPath(config.browserUserDataDir ?? defaults.browserUserDataDir),
+    browserSourceUserDataDir: resolveUserPath(config.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir),
   };
 }
 

@@ -19,12 +19,12 @@ const pluginCleanup = new WeakMap<object, Array<() => Promise<void>>>();
 
 export function getRuntimePaths(
   storageRoot = path.join(process.cwd(), "storage"),
-  browserProfileDir = path.join(storageRoot, "profile"),
+  browserUserDataDir = path.join(storageRoot, "user-data"),
 ): RuntimePaths {
   return {
     storageRoot,
-    browserProfileDir,
-    authDir: path.join(storageRoot, ".auth"),
+    browserUserDataDir,
+    authDir: path.join(browserUserDataDir, ".auth"),
     screenshotsDir: path.join(storageRoot, "screenshots"),
     tracesDir: path.join(storageRoot, "traces"),
   };
@@ -84,7 +84,8 @@ async function setupPlugins(
       headed: options.headed,
       storageRoot: options.storageRoot,
       storageStatePath: options.storageStatePath,
-      browserProfileDir: options.browserProfileDir,
+      browserUserDataDir: options.browserUserDataDir,
+      browserExecutablePath: options.browserExecutablePath,
       skill,
       globalConfig,
     });
@@ -128,23 +129,19 @@ export async function createRuntime<Skill extends AnySkill = AnySkill>(
       ? z.object(options.skill.config).parse(globalConfig.skillConfig?.[skillName ?? ""] ?? {})
       : {};
   const configAccessor = createSkillConfigAccessor(resolvedSkillConfig);
-  const defaultStorageRoot =
-    globalConfig.browserStorageRoot;
-  const defaultBrowserProfileRoot = globalConfig.browserProfileRoot;
   const fallbackProjectStorageRoot =
     options.skill?.rootDir ? path.join(options.skill.rootDir, "storage") : path.join(process.cwd(), "storage");
   const resolvedStorageRoot =
     options.storageRoot ??
     skillConfig?.storageRoot ??
-    defaultStorageRoot ??
     fallbackProjectStorageRoot;
   const paths = getRuntimePaths(
     resolvedStorageRoot,
-    options.browserProfileDir ?? defaultBrowserProfileRoot ?? path.join(resolvedStorageRoot, "profile"),
+    options.browserUserDataDir ?? globalConfig.browserUserDataDir ?? path.join(resolvedStorageRoot, "user-data"),
   );
   const storageStatePath = options.storageStatePath ?? path.join(paths.authDir, "user.json");
 
-  await mkdir(paths.browserProfileDir, { recursive: true });
+  await mkdir(paths.browserUserDataDir, { recursive: true });
   await mkdir(path.dirname(storageStatePath), { recursive: true });
   await mkdir(paths.screenshotsDir, { recursive: true });
   await mkdir(paths.tracesDir, { recursive: true });

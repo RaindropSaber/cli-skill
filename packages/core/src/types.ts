@@ -2,7 +2,7 @@ import type { ZodObject, ZodRawShape, ZodTypeAny, infer as ZodInfer } from "zod"
 
 export interface RuntimePaths {
   storageRoot: string;
-  browserProfileDir: string;
+  browserUserDataDir: string;
   authDir: string;
   screenshotsDir: string;
   tracesDir: string;
@@ -12,8 +12,9 @@ export interface CliSkillConfig {
   skillsRoot?: string;
   installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
-  browserStorageRoot?: string;
-  browserProfileRoot?: string;
+  browserExecutablePath?: string;
+  browserUserDataDir?: string;
+  browserSourceUserDataDir?: string;
   env?: Record<string, string>;
   skillConfig?: Record<string, Record<string, unknown>>;
   skills?: Record<
@@ -50,7 +51,8 @@ export interface SkillPluginSetupOptions {
   headed?: boolean;
   storageRoot?: string;
   storageStatePath?: string;
-  browserProfileDir?: string;
+  browserUserDataDir?: string;
+  browserExecutablePath?: string;
 }
 
 export interface SkillPlugin<Ctx extends object = object> {
