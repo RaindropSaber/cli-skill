@@ -1,4 +1,4 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
@@ -159,7 +159,8 @@ async function main() {
 
   try {
     await applyVersion(nextVersion);
-    run("bun", ["install", "--lockfile-only"]);
+    await rm(path.join(repoRoot, "bun.lock"), { force: true });
+    run("bun", ["install"]);
     run("bun", ["run", "test"]);
 
     run("git", [

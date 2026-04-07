@@ -93,20 +93,21 @@ export default defineSkill({
 
 ## 浏览器状态
 
-`browserPlugin` 默认会使用共享浏览器 storage：
+`browserPlugin` 默认会使用同一份浏览器用户目录：
 
-- `~/.cli-skill/browser/storage`
+- `~/.cli-skill/browser/user-data`
 
 这意味着：
 
 - 浏览器录制
 - 浏览器工具执行
 
-默认可以共享登录态。
+默认会共享登录态，以及浏览器级的地址栏历史等浏览器记忆。
 
 如果需要改路径，可以通过 `~/.cli-skill/config.json` 里的：
 
-- `browserStorageRoot`
+- `browserUserDataDir`
+- `browserSourceUserDataDir`
 
 覆盖默认值。
 

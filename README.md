@@ -40,11 +40,16 @@
 
 `cli-skill browser record` 可以先录下真实操作，再保留：
 
-- 用户行为
-- 网络请求
-- DOM 快照
-- 关键帧
-- 时间线
+- 用户行为明细
+- 网络请求明细
+- DOM 变化明细
+- 以 `timeline.jsonl` 为主线的时间线
+
+默认读法是：
+
+1. 先看 `summary.json`
+2. 再看 `timeline.jsonl`
+3. 需要更多上下文时，再按时间线里的 `actionId`、`networkId`、`domSnapshotId` 去查对应明细
 
 这些结果可以继续交给 AI，用来判断哪些步骤值得沉淀成工具，哪些更适合 DOM 自动化，哪些更适合直接走接口。
 
@@ -75,7 +80,7 @@
   - 技能定义、工具定义、插件能力和运行时模型。
   - 说明见 [packages/core/README.md](./packages/core/README.md)
 - `packages/browser-recorder`
-  - 浏览器录制服务、录制页和录制产物。
+  - 浏览器录制宿主、悬浮窗注入和录制产物。
   - 说明见 [packages/browser-recorder/README.md](./packages/browser-recorder/README.md)
 - `packages/templates`
   - 新技能项目模板。
@@ -86,12 +91,15 @@
 ## 安装
 
 ```bash
-npm i -g @cli-skill/cli
+npm i -g bun
+bun add -g @cli-skill/cli
 ```
 
-安装完成后，`@cli-skill/cli` 会自动把自己的技能目录链接到：
+安装完成后，再执行一条 shell 命令，把安装包里的 `skill/` 目录链接到 `~/.agents/skills/cli-skill`。这样 agent 才能在后续对话里直接加载并使用这份 `cli-skill` 技能说明：
 
-- `~/.agents/skills/cli-skill`
+```bash
+mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(command -v cli-skill)")")/.." && pwd)" && ln -sfn "$CLI_SKILL_DIR/skill" ~/.agents/skills/cli-skill
+```
 
 这样后续 agent 就能直接使用 `cli-skill` 这份技能。
 
@@ -109,6 +117,12 @@ cli-skill mount
 
 ```bash
 cli-skill browser record
+```
+
+如果你想把本机 Chrome 里一部分状态同步到 `cli-skill` 使用的浏览器目录，可以手动执行：
+
+```bash
+cli-skill browser sync
 ```
 
 ## 开发

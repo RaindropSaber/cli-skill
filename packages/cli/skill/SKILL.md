@@ -98,10 +98,15 @@ bun install
 
 1. 启动 `cli-skill browser record`
 2. 持续等待录制命令结束
-3. 从返回结果里的 `summaryPath` 开始读录制结果
-4. 先写“用户做了什么”
-5. 再判断适合沉淀成哪些工具
-6. 再实现工具和技能文档
+3. 先读 `summary.json`
+4. 再读 `timeline.jsonl`
+5. 需要更多上下文时，再按时间线里的 `actionId`、`networkId`、`domSnapshotId` 去查：
+   - `actions.jsonl`
+   - `network.jsonl`
+   - `dom.jsonl`
+6. 先写“用户做了什么”
+7. 再判断适合沉淀成哪些工具
+8. 再实现工具和技能文档
 
 ### 情况三：维护已有技能
 
@@ -185,8 +190,10 @@ bun install
   - `list`
   - 直接执行工具
   - `config get/set/unset`
-- 浏览器共享 storage 默认在：
-  - `~/.cli-skill/browser/storage`
+- 浏览器工作目录默认在：
+  - `~/.cli-skill/browser/user-data`
+- 浏览器同步来源目录默认是本机 Chrome 的：
+  - `~/Library/Application Support/Google/Chrome/Default`
 - 浏览器录制结果默认在：
   - `~/.cli-skill/browser-recorder`
 - `cli-skill browser record` 是一个长任务：
@@ -196,7 +203,8 @@ bun install
   - 命令结束后返回的 JSON 才是完成信号
   - 返回结果里的 `stopReason` 用来判断是正常停止还是中断
   - 只有适合继续的退出原因，才进入后续分析
-  - 后续分析应从返回结果里的 `summaryPath` 开始
+  - 后续分析默认先看 `summary.json` 和 `timeline.jsonl`
+  - `timeline.jsonl` 是主入口，其他三份明细通过 `actionId`、`networkId`、`domSnapshotId` 按需展开
 
 ## 常用命令
 

@@ -1,6 +1,6 @@
 {
   "name": "@cli-skill/cli",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -8,8 +8,7 @@
     "README.md",
     "bin",
     "src",
-    "skill",
-    "scripts"
+    "skill"
   ],
   "bin": {
     "cli-skill": "./bin/cli-skill"
@@ -21,7 +20,6 @@
     }
   },
   "scripts": {
-    "postinstall": "node ./scripts/postinstall.mjs",
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "devDependencies": {

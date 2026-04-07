@@ -4,6 +4,19 @@
 
 如果说整个项目解决的是“怎么把一个流程做成技能”，这个包解决的就是其中的工作流部分：创建项目、构建产物、安装技能、挂载技能、发布技能，以及启动浏览器录制。
 
+## 安装
+
+```bash
+npm i -g bun
+bun add -g @cli-skill/cli
+```
+
+安装完成后，再执行一条 shell 命令，把安装包里的 `skill/` 目录链接到 `~/.agents/skills/cli-skill`。这样 agent 才能在后续对话里直接加载并使用这份 `cli-skill` 技能说明：
+
+```bash
+mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(command -v cli-skill)")")/.." && pwd)" && ln -sfn "$CLI_SKILL_DIR/skill" ~/.agents/skills/cli-skill
+```
+
 ## 这个包负责什么
 
 - 创建新的技能项目
@@ -13,6 +26,8 @@
 - 挂载和取消挂载技能
 - 读写 `~/.cli-skill/config.json`
 - 启动浏览器录制
+- 手动同步浏览器用户目录
+- 把录制结果整理成 `summary + timeline + 明细` 这套统一产物
 
 ## 常见命令
 
@@ -28,6 +43,7 @@ cli-skill config get [keyPath]
 cli-skill config set <keyPath> <value>
 cli-skill exec <skillName> <toolName> [rawInput]
 cli-skill browser record
+cli-skill browser sync
 ```
 
 ### 当前技能目录命令
@@ -74,6 +90,31 @@ cli-skill exec <skill-name> <tool-name> '{"foo":"bar"}'
 cli-skill browser record
 ```
 
+录制结束后，默认先看：
+
+- `summary.json`
+- `timeline.jsonl`
+
+再按 `timeline.jsonl` 里的：
+
+- `actionId`
+- `networkId`
+- `domSnapshotId`
+
+去读：
+
+- `actions.jsonl`
+- `network.jsonl`
+- `dom.jsonl`
+
+### 手动同步浏览器用户目录
+
+```bash
+cli-skill browser sync
+```
+
+这个同步能力属于 `@cli-skill/cli` 自己的工作流能力，不属于 `browser-recorder` 宿主本身。
+
 ## 技能项目约定
 
 `@cli-skill/cli` 约定技能项目使用下面这套结构：
@@ -102,8 +143,10 @@ cli-skill browser record
   - `~/.cli-skill/registry.json`
 - 默认 agent 目录：
   - `~/.agents/skills`
-- 浏览器共享 storage：
-  - `~/.cli-skill/browser/storage`
+- 浏览器工作目录：
+  - `~/.cli-skill/browser/user-data`
+- 浏览器同步来源：
+  - 默认会尝试读取本机 Chrome 的 `Default` 目录
 - 浏览器录制结果：
   - `~/.cli-skill/browser-recorder`
 

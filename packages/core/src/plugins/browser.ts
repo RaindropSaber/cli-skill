@@ -1,5 +1,3 @@
-import { access } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
 import { chromium, type APIRequestContext, type Browser, type BrowserContext, type Page } from "playwright";
 import type { SkillPlugin } from "../types";
 
@@ -8,15 +6,6 @@ export interface BrowserPluginContext {
   context: BrowserContext;
   page: Page;
   request: APIRequestContext;
-}
-
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath, fsConstants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function isMissingBrowserExecutableError(error: unknown): error is Error {
@@ -37,11 +26,15 @@ function createMissingBrowserExecutableError(error: Error): Error {
 export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
   name: "browser",
   async setup(ctx, options) {
-    const storageState = (await fileExists(ctx.storageStatePath)) ? ctx.storageStatePath : undefined;
-    let browser: Browser;
+    let context: BrowserContext;
 
     try {
-      browser = await chromium.launch({ headless: options.headed !== true });
+      context = await chromium.launchPersistentContext(ctx.paths.browserUserDataDir, {
+        headless: options.headed !== true,
+        executablePath: options.browserExecutablePath || options.globalConfig.browserExecutablePath || undefined,
+        viewport: null,
+        args: ["--window-size=1440,960"],
+      });
     } catch (error) {
       if (isMissingBrowserExecutableError(error)) {
         throw createMissingBrowserExecutableError(error);
@@ -50,8 +43,12 @@ export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
       throw error;
     }
 
-    const context = await browser.newContext({ storageState });
-    const page = await context.newPage();
+    const browser = context.browser();
+    if (!browser) {
+      await context.close().catch(() => undefined);
+      throw new Error("Failed to get browser instance from persistent context.");
+    }
+    const page = context.pages()[0] ?? await context.newPage();
 
     return {
       browser,
@@ -63,6 +60,5 @@ export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
   async dispose(ctx) {
     await ctx.context.storageState({ path: ctx.storageStatePath });
     await ctx.context.close();
-    await ctx.browser.close();
   },
 };
