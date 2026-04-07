@@ -125,7 +125,6 @@ async function applyVersion(version) {
   for (const packageJsonPath of packageJsonPaths) {
     const pkg = await readJson(packageJsonPath);
     pkg.version = version;
-    syncInternalDependencies(pkg, version);
     await writeJson(packageJsonPath, pkg);
   }
 }
@@ -137,27 +136,6 @@ async function getManagedPackageJsonPaths() {
     .map((entry) => path.join(packagesDir, entry.name, "package.json"));
 
   return [rootPackageJsonPath, ...packagePaths];
-}
-
-function syncDependencyGroup(dependencies, version) {
-  if (!dependencies || typeof dependencies !== "object") {
-    return;
-  }
-
-  for (const [name, value] of Object.entries(dependencies)) {
-    if (!name.startsWith("@cli-skill/") || typeof value !== "string") {
-      continue;
-    }
-
-    dependencies[name] = `^${version}`;
-  }
-}
-
-function syncInternalDependencies(pkg, version) {
-  syncDependencyGroup(pkg.dependencies, version);
-  syncDependencyGroup(pkg.devDependencies, version);
-  syncDependencyGroup(pkg.peerDependencies, version);
-  syncDependencyGroup(pkg.optionalDependencies, version);
 }
 
 async function main() {

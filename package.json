@@ -12,8 +12,6 @@
     "release": "bun ./scripts/release.ts"
   },
   "devDependencies": {
-    "bun-types": "^1.3.11",
-    "@types/lodash": "^4.17.20",
     "@types/node": "^24.0.10",
     "typescript": "^6.0.2"
   }
