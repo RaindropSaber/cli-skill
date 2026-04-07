@@ -17,6 +17,7 @@ export function registerBrowserCommands(cli: CAC): void {
       const result = await startBrowserRecorder({
         storageRoot,
         browserStorageRoot: config.browserStorageRoot,
+        browserProfileRoot: config.browserProfileRoot,
       });
       console.log(JSON.stringify(result, null, 2));
     });

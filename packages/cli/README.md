@@ -4,6 +4,19 @@
 
 如果说整个项目解决的是“怎么把一个流程做成技能”，这个包解决的就是其中的工作流部分：创建项目、构建产物、安装技能、挂载技能、发布技能，以及启动浏览器录制。
 
+## 安装
+
+```bash
+npm i -g bun
+bun add -g @cli-skill/cli
+```
+
+安装完成后，再执行一条 shell 命令，把安装包里的 `skill/` 目录链接到 `~/.agents/skills/cli-skill`。这样 agent 才能在后续对话里直接加载并使用这份 `cli-skill` 技能说明：
+
+```bash
+mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(command -v cli-skill)")")/.." && pwd)" && ln -sfn "$CLI_SKILL_DIR/skill" ~/.agents/skills/cli-skill
+```
+
 ## 这个包负责什么
 
 - 创建新的技能项目
@@ -104,6 +117,8 @@ cli-skill browser record
   - `~/.agents/skills`
 - 浏览器共享 storage：
   - `~/.cli-skill/browser/storage`
+- 浏览器共享 profile：
+  - `~/.cli-skill/browser/profile`
 - 浏览器录制结果：
   - `~/.cli-skill/browser-recorder`
 

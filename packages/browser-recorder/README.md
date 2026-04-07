@@ -76,7 +76,14 @@ cli-skill browser record
 
 - `~/.cli-skill/browser/storage/.auth/user.json`
 
-如果上层配置覆盖了 `browserStorageRoot`，录制器会跟着使用新的路径。
+默认浏览器 profile 目录：
+
+- `~/.cli-skill/browser/profile`
+
+如果上层配置覆盖了这些路径，录制器会跟着使用新的位置：
+
+- `browserStorageRoot`
+- `browserProfileRoot`
 
 ## review 页
 

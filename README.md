@@ -86,12 +86,15 @@
 ## 安装
 
 ```bash
-npm i -g @cli-skill/cli
+npm i -g bun
+bun add -g @cli-skill/cli
 ```
 
-安装完成后，`@cli-skill/cli` 会自动把自己的技能目录链接到：
+安装完成后，再执行一条 shell 命令，把安装包里的 `skill/` 目录链接到 `~/.agents/skills/cli-skill`。这样 agent 才能在后续对话里直接加载并使用这份 `cli-skill` 技能说明：
 
-- `~/.agents/skills/cli-skill`
+```bash
+mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(command -v cli-skill)")")/.." && pwd)" && ln -sfn "$CLI_SKILL_DIR/skill" ~/.agents/skills/cli-skill
+```
 
 这样后续 agent 就能直接使用 `cli-skill` 这份技能。
 

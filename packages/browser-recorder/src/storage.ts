@@ -14,6 +14,7 @@ export interface RecorderSessionPaths {
   assetsDir: string;
   domDir: string;
   authDir: string;
+  profileDir: string;
   storageStatePath: string;
   metaPath: string;
   actionsPath: string;
@@ -38,21 +39,25 @@ function timestampForDir(): string {
 export async function createRecorderSessionPaths(
   recordingRoot: string,
   browserStorageRoot: string,
+  browserProfileRoot = path.join(path.dirname(browserStorageRoot), "profile"),
 ): Promise<RecorderSessionPaths> {
   const recordingDir = path.join(recordingRoot, timestampForDir());
   const assetsDir = path.join(recordingDir, "assets");
   const domDir = path.join(recordingDir, "dom");
   const authDir = path.join(browserStorageRoot, ".auth");
+  const profileDir = browserProfileRoot;
 
   await mkdir(assetsDir, { recursive: true });
   await mkdir(domDir, { recursive: true });
   await mkdir(authDir, { recursive: true });
+  await mkdir(profileDir, { recursive: true });
 
   return {
     recordingDir,
     assetsDir,
     domDir,
     authDir,
+    profileDir,
     storageStatePath: path.join(authDir, "user.json"),
     metaPath: path.join(recordingDir, "meta.json"),
     actionsPath: path.join(recordingDir, "actions.jsonl"),

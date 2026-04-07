@@ -187,6 +187,8 @@ bun install
   - `config get/set/unset`
 - 浏览器共享 storage 默认在：
   - `~/.cli-skill/browser/storage`
+- 浏览器共享 profile 默认在：
+  - `~/.cli-skill/browser/profile`
 - 浏览器录制结果默认在：
   - `~/.cli-skill/browser-recorder`
 - `cli-skill browser record` 是一个长任务：

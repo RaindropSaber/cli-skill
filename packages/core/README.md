@@ -97,16 +97,21 @@ export default defineSkill({
 
 - `~/.cli-skill/browser/storage`
 
+默认浏览器 profile 目录：
+
+- `~/.cli-skill/browser/profile`
+
 这意味着：
 
 - 浏览器录制
 - 浏览器工具执行
 
-默认可以共享登录态。
+默认可以共享登录态，以及浏览器级的地址栏历史等 profile 记忆。
 
 如果需要改路径，可以通过 `~/.cli-skill/config.json` 里的：
 
 - `browserStorageRoot`
+- `browserProfileRoot`
 
 覆盖默认值。
 

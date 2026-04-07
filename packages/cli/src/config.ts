@@ -10,6 +10,7 @@ export interface BrowserSkillCliConfig {
   installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
   browserStorageRoot?: string;
+  browserProfileRoot?: string;
   skillConfig?: Record<string, Record<string, unknown>>;
 }
 
@@ -47,19 +48,20 @@ export async function loadBrowserSkillCliConfig(): Promise<BrowserSkillCliConfig
 }
 
 export function getDefaultBrowserSkillCliConfig(): Required<
-  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "skillConfig">
+  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "browserProfileRoot" | "skillConfig">
 > {
   return {
     skillsRoot: path.join(getBrowserSkillHome(), "skills"),
     installedSkillsRoot: path.join(getBrowserSkillHome(), "installed"),
     agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
     browserStorageRoot: path.join(getBrowserSkillHome(), "browser", "storage"),
+    browserProfileRoot: path.join(getBrowserSkillHome(), "browser", "profile"),
     skillConfig: {},
   };
 }
 
 export async function getResolvedBrowserSkillCliConfig(): Promise<
-  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot">> &
+  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserStorageRoot" | "browserProfileRoot">> &
     BrowserSkillCliConfig
 > {
   const config = await loadBrowserSkillCliConfig();
@@ -72,6 +74,7 @@ export async function getResolvedBrowserSkillCliConfig(): Promise<
     installedSkillsRoot: resolveUserPath(config.installedSkillsRoot ?? defaults.installedSkillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
     browserStorageRoot: resolveUserPath(config.browserStorageRoot ?? defaults.browserStorageRoot),
+    browserProfileRoot: resolveUserPath(config.browserProfileRoot ?? defaults.browserProfileRoot),
   };
 }
 
@@ -88,6 +91,7 @@ export async function ensureBrowserSkillCliConfig(): Promise<string> {
       installedSkillsRoot: parsed.installedSkillsRoot ?? defaults.installedSkillsRoot,
       agentsSkillsRoot: parsed.agentsSkillsRoot ?? defaults.agentsSkillsRoot,
       browserStorageRoot: parsed.browserStorageRoot ?? defaults.browserStorageRoot,
+      browserProfileRoot: parsed.browserProfileRoot ?? defaults.browserProfileRoot,
       skillConfig: parsed.skillConfig ?? defaults.skillConfig,
     };
 

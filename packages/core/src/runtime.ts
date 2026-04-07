@@ -17,9 +17,13 @@ import type {
 
 const pluginCleanup = new WeakMap<object, Array<() => Promise<void>>>();
 
-export function getRuntimePaths(storageRoot = path.join(process.cwd(), "storage")): RuntimePaths {
+export function getRuntimePaths(
+  storageRoot = path.join(process.cwd(), "storage"),
+  browserProfileDir = path.join(storageRoot, "profile"),
+): RuntimePaths {
   return {
     storageRoot,
+    browserProfileDir,
     authDir: path.join(storageRoot, ".auth"),
     screenshotsDir: path.join(storageRoot, "screenshots"),
     tracesDir: path.join(storageRoot, "traces"),
@@ -80,6 +84,7 @@ async function setupPlugins(
       headed: options.headed,
       storageRoot: options.storageRoot,
       storageStatePath: options.storageStatePath,
+      browserProfileDir: options.browserProfileDir,
       skill,
       globalConfig,
     });
@@ -125,16 +130,21 @@ export async function createRuntime<Skill extends AnySkill = AnySkill>(
   const configAccessor = createSkillConfigAccessor(resolvedSkillConfig);
   const defaultStorageRoot =
     globalConfig.browserStorageRoot;
+  const defaultBrowserProfileRoot = globalConfig.browserProfileRoot;
   const fallbackProjectStorageRoot =
     options.skill?.rootDir ? path.join(options.skill.rootDir, "storage") : path.join(process.cwd(), "storage");
-  const paths = getRuntimePaths(
+  const resolvedStorageRoot =
     options.storageRoot ??
-      skillConfig?.storageRoot ??
-      defaultStorageRoot ??
-      fallbackProjectStorageRoot,
+    skillConfig?.storageRoot ??
+    defaultStorageRoot ??
+    fallbackProjectStorageRoot;
+  const paths = getRuntimePaths(
+    resolvedStorageRoot,
+    options.browserProfileDir ?? defaultBrowserProfileRoot ?? path.join(resolvedStorageRoot, "profile"),
   );
   const storageStatePath = options.storageStatePath ?? path.join(paths.authDir, "user.json");
 
+  await mkdir(paths.browserProfileDir, { recursive: true });
   await mkdir(path.dirname(storageStatePath), { recursive: true });
   await mkdir(paths.screenshotsDir, { recursive: true });
   await mkdir(paths.tracesDir, { recursive: true });

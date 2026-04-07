@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium, type Browser, type BrowserContext, type Frame, type Page, type Request, type Response } from "playwright";
 import {
@@ -28,6 +28,7 @@ import type {
 interface StartBrowserRecorderOptions {
   storageRoot: string;
   browserStorageRoot: string;
+  browserProfileRoot?: string;
 }
 
 interface ToggleResult {
@@ -68,15 +69,6 @@ function respondJson(response: import("node:http").ServerResponse, value: unknow
   response.end(JSON.stringify(value));
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function tryParseJson(value: string | null): unknown {
   if (!value) {
     return undefined;
@@ -97,7 +89,11 @@ export async function startBrowserRecorder(
   options: StartBrowserRecorderOptions,
 ): Promise<BrowserRecorderResult> {
   const sessionId = createId("rec");
-  const paths = await createRecorderSessionPaths(options.storageRoot, options.browserStorageRoot);
+  const paths = await createRecorderSessionPaths(
+    options.storageRoot,
+    options.browserStorageRoot,
+    options.browserProfileRoot,
+  );
   const actions: RecorderActionRecord[] = [];
   const network: RecorderNetworkRecord[] = [];
   const keyframes: RecorderKeyframeRecord[] = [];
@@ -303,6 +299,10 @@ export async function startBrowserRecorder(
       if (page === nextPage) {
         page = null;
       }
+
+      if (trackedPages.size === 0) {
+        handleExternalClose("browser_closed");
+      }
     });
   }
 
@@ -414,6 +414,9 @@ export async function startBrowserRecorder(
         await finalizeResult();
       } finally {
         await closeServer();
+        if (context) {
+          await context.close().catch(() => undefined);
+        }
         if (options?.closeBrowser !== false && browser?.isConnected()) {
           await browser.close().catch(() => undefined);
         }
@@ -423,8 +426,22 @@ export async function startBrowserRecorder(
     return shutdownPromise;
   }
 
+  function handleExternalClose(reason: StopReason) {
+    if (shutdownPromise) {
+      return;
+    }
+
+    finalizing = true;
+    active = false;
+    endedAt ??= new Date().toISOString();
+    finalUrl = page?.url() ?? finalUrl;
+    void shutdown(reason, { closeBrowser: false });
+  }
+
   try {
-    browser = await chromium.launch({ headless: false });
+    context = await chromium.launchPersistentContext(paths.profileDir, {
+      headless: false,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("Executable doesn't exist") || message.includes("Please run the following command to download new browsers")) {
@@ -437,14 +454,17 @@ export async function startBrowserRecorder(
         ].join("\n"),
       );
     }
-
     throw error;
   }
-  const storageState = (await fileExists(paths.storageStatePath)) ? paths.storageStatePath : undefined;
-  context = await browser.newContext({ storageState });
+  browser = context.browser();
   await context.addInitScript({
     content: getOverlayScript(sessionId, reviewUrl),
   });
+  for (const existingPage of context.pages()) {
+    await existingPage.addInitScript({
+      content: getOverlayScript(sessionId, reviewUrl),
+    });
+  }
   await context.exposeBinding("__cliSkillRecorderGetState", async () => currentState());
   await context.exposeBinding("__cliSkillRecorderToggle", async () => {
     active = !active;
@@ -543,7 +563,7 @@ export async function startBrowserRecorder(
       });
     },
   );
-  page = await context.newPage();
+  page = context.pages()[0] ?? await context.newPage();
   attachPage(page);
   context.on("page", (nextPage) => {
     page = nextPage;
@@ -598,14 +618,12 @@ export async function startBrowserRecorder(
     await appendJsonLine(paths.networkPath, record);
   });
 
-  browser.on("disconnected", () => {
-    if (!shutdownPromise) {
-      finalizing = true;
-      active = false;
-      endedAt ??= new Date().toISOString();
-      finalUrl = page?.url() ?? finalUrl;
-      void shutdown("browser_closed", { closeBrowser: false });
-    }
+  context.on("close", () => {
+    handleExternalClose("browser_closed");
+  });
+
+  browser?.on("disconnected", () => {
+    handleExternalClose("browser_closed");
   });
 
   await page.goto(recordUrl);
