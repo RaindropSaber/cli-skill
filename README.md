@@ -83,6 +83,18 @@
 - `packages/cli/skill`
   - `cli-skill` 自己的技能说明与参考资料，供 agent 使用。
 
+## 安装
+
+```bash
+npm i -g @cli-skill/cli
+```
+
+安装完成后，`@cli-skill/cli` 会自动把自己的技能目录链接到：
+
+- `~/.agents/skills/cli-skill`
+
+这样后续 agent 就能直接使用 `cli-skill` 这份技能。
+
 ## 快速开始
 
 ```bash
@@ -100,6 +112,15 @@ cli-skill browser record
 ```
 
 ## 开发
+
+在本地开发这个仓库时，可以这样接通本地 CLI：
+
+```bash
+bun install
+bun link ./packages/cli
+```
+
+常用开发命令：
 
 ```bash
 bun run bootstrap
