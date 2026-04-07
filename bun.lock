@@ -5,15 +5,13 @@
     "": {
       "name": "cli-skill",
       "devDependencies": {
-        "@types/lodash": "^4.17.20",
         "@types/node": "^24.0.10",
-        "bun-types": "^1.3.11",
         "typescript": "^6.0.2",
       },
     },
     "packages/browser-recorder": {
       "name": "@cli-skill/browser-recorder",
-      "version": "0.0.3-beta.20260402154312",
+      "version": "0.0.4",
       "dependencies": {
         "playwright": "^1.59.1",
       },
@@ -23,27 +21,32 @@
     },
     "packages/cli": {
       "name": "@cli-skill/cli",
-      "version": "0.0.3-beta.20260402154312",
+      "version": "0.0.4",
       "bin": {
         "cli-skill": "./bin/cli-skill",
       },
       "dependencies": {
-        "@cli-skill/browser-recorder": "^0.0.3-beta.20260402154312",
-        "@cli-skill/core": "^0.0.3-beta.20260402154312",
+        "@cli-skill/browser-recorder": "workspace:*",
+        "@cli-skill/core": "workspace:*",
         "cac": "^6.7.14",
         "lodash": "^4.17.21",
         "zod": "^4.3.6",
       },
+      "devDependencies": {
+        "@types/lodash": "^4.17.20",
+        "bun-types": "^1.3.11",
+      },
     },
     "packages/core": {
       "name": "@cli-skill/core",
-      "version": "0.0.3-beta.20260402154312",
+      "version": "0.0.4",
       "dependencies": {
         "cac": "^6.7.14",
         "lodash": "^4.17.21",
         "playwright": "^1.59.1",
       },
       "devDependencies": {
+        "@types/lodash": "^4.17.20",
         "@types/node": "^24.0.10",
         "zod": "^4.3.6",
       },
@@ -53,7 +56,7 @@
     },
     "packages/templates": {
       "name": "@cli-skill/templates",
-      "version": "0.0.3-beta.20260402154312",
+      "version": "0.0.4",
       "bin": {
         "cli-skill-create-template": "./bin/cli-skill-create-template",
       },

@@ -1,9 +1,16 @@
 {
   "name": "@cli-skill/cli",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "files": [
+    "README.md",
+    "bin",
+    "src",
+    "skill",
+    "scripts"
+  ],
   "bin": {
     "cli-skill": "./bin/cli-skill"
   },
@@ -14,11 +21,16 @@
     }
   },
   "scripts": {
+    "postinstall": "node ./scripts/postinstall.mjs",
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "bun-types": "^1.3.11"
+  },
   "dependencies": {
-    "@cli-skill/browser-recorder": "^0.0.3",
-    "@cli-skill/core": "^0.0.3",
+    "@cli-skill/browser-recorder": "workspace:*",
+    "@cli-skill/core": "workspace:*",
     "cac": "^6.7.14",
     "lodash": "^4.17.21",
     "zod": "^4.3.6"

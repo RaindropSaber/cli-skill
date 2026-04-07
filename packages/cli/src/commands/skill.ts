@@ -10,6 +10,26 @@ import {
   unmountSkillProject,
 } from "../registry";
 
+function looksLikePath(value: string): boolean {
+  return value.startsWith("/") || value.startsWith("./") || value.startsWith("../") || value.startsWith("~/");
+}
+
+async function resolveMountTarget(skillOrTargetPath?: string) {
+  if (!skillOrTargetPath || looksLikePath(skillOrTargetPath)) {
+    return {
+      resolved: await getCurrentSkillProject(),
+      targetPath: skillOrTargetPath,
+      shouldBuild: true,
+    };
+  }
+
+  return {
+    resolved: await resolveRegisteredSkillProject(skillOrTargetPath),
+    targetPath: undefined,
+    shouldBuild: false,
+  };
+}
+
 export function registerSkillCommands(cli: CAC): void {
   cli
     .command("exec <skillName> <toolName> [rawInput]", "Execute a tool from a registered cli skill")
@@ -51,17 +71,23 @@ export function registerSkillCommands(cli: CAC): void {
     console.log(updatedPath);
   });
 
-  cli.command("mount [targetPath]", "Mount the current cli skill project for agents").action(async (targetPath?: string) => {
-    const resolved = await getCurrentSkillProject();
-    const skill = await loadSkillDefinition(resolved.projectPath);
-    await writeSkillDocsMarkdown(skill);
-    const mountedPath = await mountSkillProject(resolved.projectPath, { skillRoot: targetPath });
+  cli.command("mount [skillNameOrTargetPath] [targetPath]", "Mount the current cli skill project or a registered cli skill for agents").action(async (skillNameOrTargetPath?: string, targetPath?: string) => {
+    const { resolved, targetPath: inferredTargetPath, shouldBuild } = await resolveMountTarget(skillNameOrTargetPath);
+    const finalTargetPath = targetPath ?? inferredTargetPath;
+
+    if (shouldBuild) {
+      const skill = await loadSkillDefinition(resolved.projectPath);
+      await writeSkillDocsMarkdown(skill);
+    }
+
+    const mountedPath = await mountSkillProject(resolved.projectPath, { skillRoot: finalTargetPath });
     console.log(mountedPath);
   });
 
-  cli.command("unmount [targetPath]", "Unmount the current cli skill project for agents").action(async (targetPath?: string) => {
-    const resolved = await getCurrentSkillProject();
-    const mountedPath = await unmountSkillProject(resolved.projectPath, { skillRoot: targetPath });
+  cli.command("unmount [skillNameOrTargetPath] [targetPath]", "Unmount the current cli skill project or a registered cli skill for agents").action(async (skillNameOrTargetPath?: string, targetPath?: string) => {
+    const { resolved, targetPath: inferredTargetPath } = await resolveMountTarget(skillNameOrTargetPath);
+    const finalTargetPath = targetPath ?? inferredTargetPath;
+    const mountedPath = await unmountSkillProject(resolved.projectPath, { skillRoot: finalTargetPath });
     console.log(mountedPath);
   });
 

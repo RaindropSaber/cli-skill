@@ -80,8 +80,8 @@
 - `packages/templates`
   - 新技能项目模板。
   - 说明见 [packages/templates/README.md](./packages/templates/README.md)
-- `skill`
-  - 这个仓库自己的技能说明与参考资料，供 agent 使用。
+- `packages/cli/skill`
+  - `cli-skill` 自己的技能说明与参考资料，供 agent 使用。
 
 ## 快速开始
 

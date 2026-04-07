@@ -1,19 +1,24 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const repoRoot = process.cwd();
+const packagesDir = path.join(repoRoot, "packages");
 
 async function readJson(filePath) {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
 
+async function getManagedPackageJsonPaths() {
+  const entries = await readdir(packagesDir, { withFileTypes: true });
+  const packagePaths = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(packagesDir, entry.name, "package.json"));
+
+  return [path.join(repoRoot, "package.json"), ...packagePaths];
+}
+
 async function loadVersions() {
-  const files = [
-    path.join(repoRoot, "package.json"),
-    path.join(repoRoot, "packages/core/package.json"),
-    path.join(repoRoot, "packages/templates/package.json"),
-    path.join(repoRoot, "packages/cli/package.json"),
-  ];
+  const files = await getManagedPackageJsonPaths();
 
   return Promise.all(
     files.map(async (file) => ({
