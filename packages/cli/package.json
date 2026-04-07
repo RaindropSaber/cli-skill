@@ -4,6 +4,13 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "files": [
+    "README.md",
+    "bin",
+    "src",
+    "skill",
+    "scripts"
+  ],
   "bin": {
     "cli-skill": "./bin/cli-skill"
   },
@@ -14,6 +21,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node ./scripts/postinstall.mjs",
     "test": "tsc -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {
