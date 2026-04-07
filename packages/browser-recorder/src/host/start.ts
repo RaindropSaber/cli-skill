@@ -151,7 +151,7 @@ export async function startBrowserRecorder(
     context = await chromium.launchPersistentContext(paths.userDataDir, {
       headless: false,
       executablePath: options.browserExecutablePath || undefined,
-      viewport: { width: 1440, height: 960 },
+      viewport: null,
       args: ["--window-size=1440,960"],
     });
   } catch (error) {

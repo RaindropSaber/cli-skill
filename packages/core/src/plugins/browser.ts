@@ -32,7 +32,7 @@ export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
       context = await chromium.launchPersistentContext(ctx.paths.browserUserDataDir, {
         headless: options.headed !== true,
         executablePath: options.browserExecutablePath || options.globalConfig.browserExecutablePath || undefined,
-        viewport: { width: 1440, height: 960 },
+        viewport: null,
         args: ["--window-size=1440,960"],
       });
     } catch (error) {
