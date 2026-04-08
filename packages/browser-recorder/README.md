@@ -62,6 +62,26 @@ cli-skill browser record
    - `networkId` -> `network.jsonl`
    - `domSnapshotId` -> `dom.jsonl`
 
+### 多页面录制怎么理解
+
+录制过程中如果打开了新页面，旧页面和新页面的变化都可能继续被记录。
+
+现在三份明细和时间线事件都会带：
+
+- `pageId`
+
+它的作用是：
+
+- 标明这条动作、请求或 DOM 变化来自哪个页面
+- 让你区分“当前正在看的新页面”和“旧页面还在后台继续变化”
+
+所以分析多页面流程时，默认顺序是：
+
+1. 先看 `timeline.jsonl`
+2. 遇到打开新页、跳转或 `tab_switch` 时，注意后续事件的 `pageId`
+3. 如果旧页面后面还有 DOM 抖动，不要误读成新页面的变化
+4. 只有需要细看某一页时，再按同一个 `pageId` 回看 `actions.jsonl`、`network.jsonl`、`dom.jsonl`
+
 这些数据会一起回答几个问题：
 
 - 用户在页面里做了什么

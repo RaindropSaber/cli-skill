@@ -3,6 +3,7 @@ import { createId } from "../utils/id.js";
 import { appendJsonLine, writeText } from "./io.js";
 
 export interface DomSnapshotDraft {
+  pageId?: string;
   timestamp: string;
   url: string;
   title?: string;
@@ -28,6 +29,7 @@ export function createDomSnapshotStore(domPath: string) {
       const domSnapshotId = createId("dom");
       const record: RecorderDomSnapshotRecord = {
         domSnapshotId,
+        pageId: draft.pageId,
         timestamp: draft.timestamp,
         url: draft.url,
         title: draft.title,

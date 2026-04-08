@@ -1,4 +1,4 @@
-import type { BrowserContext, Response as PlaywrightResponse } from "playwright";
+import type { BrowserContext, Page, Response as PlaywrightResponse } from "playwright";
 import type { ReturnTypeCreateNetworkStore } from "./types.js";
 import { createId } from "../utils/id.js";
 import { truncatePreview, tryParseJson } from "../utils/network.js";
@@ -53,6 +53,7 @@ export function registerNetworkCollector(args: {
   context: BrowserContext;
   networkStore: ReturnTypeCreateNetworkStore;
   isRecording: () => boolean;
+  getPageId: (page: Page) => string;
 }): void {
   const requestIds = new WeakMap<object, string>();
 
@@ -66,6 +67,7 @@ export function registerNetworkCollector(args: {
     requestIds.set(request, networkId);
     await args.networkStore.append({
       networkId,
+      pageId: request.frame().page() ? args.getPageId(request.frame().page()!) : undefined,
       phase: "request",
       timestamp: new Date().toISOString(),
       url: request.url(),
@@ -91,6 +93,7 @@ export function registerNetworkCollector(args: {
 
     await args.networkStore.append({
       networkId,
+      pageId: request.frame().page() ? args.getPageId(request.frame().page()!) : undefined,
       phase: "response",
       timestamp: new Date().toISOString(),
       url: response.url(),

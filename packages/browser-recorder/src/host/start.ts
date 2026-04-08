@@ -43,6 +43,7 @@ export async function startBrowserRecorder(
   let browser: Browser | null = null;
   let context: BrowserContext | null = null;
   let page: Page | null = null;
+  const pageIds = new WeakMap<Page, string>();
   let resolveResult: ((value: BrowserRecorderResult) => void) | null = null;
   let shutdownPromise: Promise<void> | null = null;
   let overlayScript = "";
@@ -94,6 +95,16 @@ export async function startBrowserRecorder(
   async function injectOverlay(targetPage: Page) {
     await targetPage.addInitScript({ content: overlayScript });
     await targetPage.evaluate(overlayScript).catch(() => undefined);
+  }
+
+  function getPageId(targetPage: Page): string {
+    const existing = pageIds.get(targetPage);
+    if (existing) {
+      return existing;
+    }
+    const next = createId("page");
+    pageIds.set(targetPage, next);
+    return next;
   }
 
   async function finalizeResult() {
@@ -186,14 +197,19 @@ export async function startBrowserRecorder(
       page = nextPage;
     },
     injectOverlay,
+    getPageId,
   });
   await registerBridgeBindings({
     context,
     getState: () => session.getState(),
     isRecording: () => session.active,
     actionStore,
+    getPageId,
+    onActionPage: (sourcePage) => {
+      page = sourcePage;
+    },
     onClickAction: async (sourcePage, record) => {
-      await domSnapshotCollector.capturePageSnapshot(sourcePage, {
+      await domSnapshotCollector.capturePageSnapshot(sourcePage, getPageId(sourcePage), {
         actionId: record.actionId,
         type: record.type,
         selector: record.selector,
@@ -201,7 +217,11 @@ export async function startBrowserRecorder(
       });
       await persistDerivedArtifacts();
     },
-    onDomSnapshot: async (payload, trigger) => {
+    onDomSnapshot: async (sourcePage, payload, trigger) => {
+      if (sourcePage) {
+        page = sourcePage;
+        payload.pageId = getPageId(sourcePage);
+      }
       await domSnapshotCollector.persistPayload(payload, trigger);
       await persistDerivedArtifacts();
     },
@@ -210,6 +230,7 @@ export async function startBrowserRecorder(
     context,
     networkStore,
     isRecording: () => session.active,
+    getPageId,
   });
 
   context.on("close", () => {

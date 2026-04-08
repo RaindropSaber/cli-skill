@@ -43,7 +43,18 @@ export async function attachBrowserRecorder(args: {
   const domSnapshotStore = createDomSnapshotStore(paths.domPath);
   const domSnapshotCollector = createDomSnapshotCollector(domSnapshotStore);
   let currentPage = args.page ?? null;
+  const pageIds = new WeakMap<Page, string>();
   let finalizePromise: Promise<BrowserRecorderResult> | null = null;
+
+  function getPageId(targetPage: Page): string {
+    const existing = pageIds.get(targetPage);
+    if (existing) {
+      return existing;
+    }
+    const next = createId("page");
+    pageIds.set(targetPage, next);
+    return next;
+  }
 
   async function persistDerivedArtifacts(): Promise<void> {
     await writeJsonLines(paths.timelinePath, createTimeline({
@@ -128,6 +139,7 @@ export async function attachBrowserRecorder(args: {
       currentPage = page;
     },
     injectOverlay: injectBridge,
+    getPageId,
   });
 
   await registerBridgeBindings({
@@ -135,8 +147,12 @@ export async function attachBrowserRecorder(args: {
     getState: () => session.getState(),
     isRecording: () => session.active,
     actionStore,
+    getPageId,
+    onActionPage: (page) => {
+      currentPage = page;
+    },
     onClickAction: async (sourcePage, record) => {
-      await domSnapshotCollector.capturePageSnapshot(sourcePage, {
+      await domSnapshotCollector.capturePageSnapshot(sourcePage, getPageId(sourcePage), {
         actionId: record.actionId,
         type: record.type,
         selector: record.selector,
@@ -144,7 +160,11 @@ export async function attachBrowserRecorder(args: {
       });
       await persistDerivedArtifacts();
     },
-    onDomSnapshot: async (payload, trigger) => {
+    onDomSnapshot: async (sourcePage, payload, trigger) => {
+      if (sourcePage) {
+        currentPage = sourcePage;
+        payload.pageId = getPageId(sourcePage);
+      }
       await domSnapshotCollector.persistPayload(payload, trigger);
       await persistDerivedArtifacts();
     },
@@ -154,6 +174,7 @@ export async function attachBrowserRecorder(args: {
     context: args.context,
     networkStore,
     isRecording: () => session.active,
+    getPageId,
   });
 
   args.context.on("close", () => {
