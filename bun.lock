@@ -11,7 +11,7 @@
     },
     "packages/browser-recorder": {
       "name": "@cli-skill/browser-recorder",
-      "version": "0.0.6-beta.20260408094133",
+      "version": "0.0.7",
       "dependencies": {
         "playwright": "^1.59.1",
       },
@@ -22,7 +22,7 @@
     },
     "packages/cli": {
       "name": "@cli-skill/cli",
-      "version": "0.0.6-beta.20260408094133",
+      "version": "0.0.7",
       "bin": {
         "cli-skill": "./bin/cli-skill",
       },
@@ -40,7 +40,7 @@
     },
     "packages/core": {
       "name": "@cli-skill/core",
-      "version": "0.0.6-beta.20260408094133",
+      "version": "0.0.7",
       "dependencies": {
         "@cli-skill/browser-recorder": "workspace:*",
         "cac": "^6.7.14",
@@ -59,7 +59,7 @@
     },
     "packages/templates": {
       "name": "@cli-skill/templates",
-      "version": "0.0.6-beta.20260408094133",
+      "version": "0.0.7",
       "bin": {
         "cli-skill-create-template": "./bin/cli-skill-create-template",
       },
