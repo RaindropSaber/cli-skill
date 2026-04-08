@@ -1,6 +1,6 @@
 {
   "name": "@cli-skill/cli",
-  "version": "0.0.6-beta.20260408083034",
+  "version": "0.0.6-beta.20260408094133",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
