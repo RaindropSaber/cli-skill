@@ -7,6 +7,7 @@ export interface DomSnapshotPayload {
   url: string;
   title?: string;
   html: string;
+  pageId?: string;
   targetSelector?: string;
   targetText?: string;
 }
@@ -15,6 +16,7 @@ export function createDomSnapshotCollector(domStore: ReturnTypeCreateDomSnapshot
   return {
     async capturePageSnapshot(
       page: Page,
+      pageId: string,
       trigger?: { actionId?: string; type?: RecorderActionRecord["type"]; selector?: string; text?: string },
     ): Promise<void> {
       const snapshot = await page
@@ -50,6 +52,7 @@ export function createDomSnapshotCollector(domStore: ReturnTypeCreateDomSnapshot
       }
 
       await domStore.append({
+        pageId,
         timestamp: new Date().toISOString(),
         url: snapshot.url,
         title: snapshot.title,
@@ -70,6 +73,7 @@ export function createDomSnapshotCollector(domStore: ReturnTypeCreateDomSnapshot
       }
 
       await domStore.append({
+        pageId: payload.pageId,
         timestamp: payload.timestamp,
         url: payload.url,
         title: payload.title,

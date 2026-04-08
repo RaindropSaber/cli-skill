@@ -10,6 +10,7 @@ export function createPageCollector(args: {
   onAllPagesClosed: () => void;
   onPageActivated: (page: Page) => void;
   injectOverlay: (page: Page) => Promise<void>;
+  getPageId: (page: Page) => string;
 }) {
   const trackedPages = new Set<Page>();
   let currentPage: Page | null = null;
@@ -21,6 +22,7 @@ export function createPageCollector(args: {
 
     trackedPages.add(page);
     currentPage = page;
+    args.getPageId(page);
     args.onPageActivated(page);
 
     page.on("framenavigated", async (frame: Frame) => {
@@ -30,6 +32,7 @@ export function createPageCollector(args: {
 
       const record: RecorderActionRecord = {
         actionId: createId("act"),
+        pageId: args.getPageId(page),
         type: "navigate",
         timestamp: new Date().toISOString(),
         url: frame.url(),

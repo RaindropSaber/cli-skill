@@ -1,5 +1,6 @@
 export interface RecorderBridgeState {
   sessionId: string;
+  showIndicator: boolean;
   rootId: string;
   isRecording: boolean;
   mounted: boolean;
@@ -33,6 +34,7 @@ type LabelledElement = HTMLElement & {
 };
 
 declare const __SESSION_ID__: string;
+declare const __SHOW_INDICATOR__: boolean;
 
 declare global {
   interface Window {
@@ -46,6 +48,7 @@ declare global {
 export function createRecorderState(): RecorderBridgeState {
   return {
     sessionId: __SESSION_ID__,
+    showIndicator: __SHOW_INDICATOR__,
     rootId: "__cli_skill_browser_recorder_root__",
     isRecording: true,
     mounted: false,

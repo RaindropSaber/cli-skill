@@ -2,7 +2,7 @@ import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { getAgentsSkillsRoot, getDefaultSkillsRoot } from "./constants";
-import { getBrowserSkillHome } from "./config";
+import { getCliSkillHome } from "./config";
 import { getBunGlobalBinDir } from "./bun";
 import { ensureValidSkillProject } from "./project";
 
@@ -33,7 +33,7 @@ interface SetupOptions {
 }
 
 function getRegistryPath(): string {
-  return path.join(getBrowserSkillHome(), "registry.json");
+  return path.join(getCliSkillHome(), "registry.json");
 }
 
 async function loadRegistryFile(): Promise<SkillRegistryFile> {

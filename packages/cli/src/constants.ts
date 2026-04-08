@@ -1,6 +1,6 @@
 import path from "node:path";
 import { access } from "node:fs/promises";
-import { getResolvedBrowserSkillCliConfig } from "./config";
+import { getResolvedCliSkillConfig } from "./config";
 
 export const LOCAL_CORE_PACKAGE_PATH = path.resolve(import.meta.dirname, "../../core");
 export const LOCAL_TEMPLATE_PACKAGE_PATH = path.resolve(import.meta.dirname, "../../templates");
@@ -16,16 +16,11 @@ export async function hasLocalTemplatesPackage(): Promise<boolean> {
 }
 
 export async function getDefaultSkillsRoot(): Promise<string> {
-  const config = await getResolvedBrowserSkillCliConfig();
+  const config = await getResolvedCliSkillConfig();
   return config.skillsRoot;
 }
 
-export async function getInstalledSkillsRoot(): Promise<string> {
-  const config = await getResolvedBrowserSkillCliConfig();
-  return config.installedSkillsRoot;
-}
-
 export async function getAgentsSkillsRoot(): Promise<string> {
-  const config = await getResolvedBrowserSkillCliConfig();
+  const config = await getResolvedCliSkillConfig();
   return config.agentsSkillsRoot;
 }

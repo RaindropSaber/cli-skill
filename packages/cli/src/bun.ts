@@ -69,7 +69,11 @@ export async function getBunGlobalBinDir(): Promise<string> {
   return path.join(bunInstall, "bin");
 }
 
-export async function installPackageToDirectory(packageSpec: string, installDir: string): Promise<void> {
+export async function installPackageToDirectory(
+  packageSpec: string,
+  installDir: string,
+  registry?: string,
+): Promise<void> {
   await rm(installDir, { recursive: true, force: true });
   await mkdir(installDir, { recursive: true });
   await writeFile(
@@ -77,5 +81,9 @@ export async function installPackageToDirectory(packageSpec: string, installDir:
     `${JSON.stringify({ name: "cli-skill-managed-install", private: true }, null, 2)}\n`,
     "utf8",
   );
-  await runBun(["add", packageSpec], installDir);
+  const args = ["add", packageSpec];
+  if (registry) {
+    args.push("--registry", registry);
+  }
+  await runBun(args, installDir);
 }

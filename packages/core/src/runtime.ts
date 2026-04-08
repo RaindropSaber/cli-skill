@@ -4,7 +4,7 @@ import get from "lodash/get";
 import set from "lodash/set";
 import path from "node:path";
 import { z } from "zod";
-import { getResolvedBrowserSkillConfig } from "./config";
+import { getResolvedCliSkillConfig } from "./config";
 import type {
   AnySkill,
   BaseToolContext,
@@ -76,7 +76,7 @@ async function setupPlugins(
   options: RuntimeOptions,
   skill: AnySkill,
 ) {
-  const globalConfig = await getResolvedBrowserSkillConfig();
+  const globalConfig = await getResolvedCliSkillConfig(options.skill?.rootDir ?? process.cwd());
   const cleanupHandlers: Array<() => Promise<void>> = [];
 
   for (const plugin of plugins) {
@@ -117,23 +117,20 @@ function collectPlugins(skill: AnySkill): SkillPlugin<any>[] {
 export async function createRuntime<Skill extends AnySkill = AnySkill>(
   options: RuntimeOptions<Skill> = {},
 ): Promise<BaseToolContext & InferToolsContext<Skill["tools"]>> {
-  const globalConfig = await getResolvedBrowserSkillConfig();
+  const globalConfig = await getResolvedCliSkillConfig(options.skill?.rootDir ?? process.cwd());
   const skillName = options.skill?.name ?? (await getCurrentSkillName());
-  const skillConfig = skillName ? globalConfig.skills?.[skillName] : undefined;
   const env = {
     ...(globalConfig.env ?? {}),
-    ...(skillConfig?.env ?? {}),
   };
   const resolvedSkillConfig =
     options.skill?.config
-      ? z.object(options.skill.config).parse(globalConfig.skillConfig?.[skillName ?? ""] ?? {})
+      ? z.object(options.skill.config).parse(globalConfig)
       : {};
   const configAccessor = createSkillConfigAccessor(resolvedSkillConfig);
   const fallbackProjectStorageRoot =
     options.skill?.rootDir ? path.join(options.skill.rootDir, "storage") : path.join(process.cwd(), "storage");
   const resolvedStorageRoot =
     options.storageRoot ??
-    skillConfig?.storageRoot ??
     fallbackProjectStorageRoot;
   const paths = getRuntimePaths(
     resolvedStorageRoot,

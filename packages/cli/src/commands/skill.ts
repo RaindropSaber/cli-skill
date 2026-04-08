@@ -34,12 +34,14 @@ export function registerSkillCommands(cli: CAC): void {
   cli
     .command("exec <skillName> <toolName> [rawInput]", "Execute a tool from a registered cli skill")
     .option("--headed", "Run browser tools with a visible browser window")
-    .action(async (skillName: string, toolName: string, rawInput: string | undefined, options: { headed?: boolean }) => {
+    .option("--headless", "Run browser tools without a visible browser window")
+    .action(async (skillName: string, toolName: string, rawInput: string | undefined, options: { headed?: boolean; headless?: boolean }) => {
       const resolved = await resolveRegisteredSkillProject(skillName);
       const skill = await loadSkillDefinition(resolved.projectPath);
       const exitCode = await runTool(skill, toolName, rawInput, {
         rootDir: resolved.projectPath,
         headed: options.headed,
+        headless: options.headless,
       });
       process.exitCode = exitCode;
     });
@@ -54,12 +56,14 @@ export function registerSkillCommands(cli: CAC): void {
   cli
     .command("run <toolName> [rawInput]", "Run a tool in the current cli skill project")
     .option("--headed", "Run browser tools with a visible browser window")
-    .action(async (toolName: string, rawInput: string | undefined, options: { headed?: boolean }) => {
+    .option("--headless", "Run browser tools without a visible browser window")
+    .action(async (toolName: string, rawInput: string | undefined, options: { headed?: boolean; headless?: boolean }) => {
       const resolved = await getCurrentSkillProject();
       const skill = await loadSkillDefinition(resolved.projectPath);
       const exitCode = await runTool(skill, toolName, rawInput, {
         rootDir: resolved.projectPath,
         headed: options.headed,
+        headless: options.headless,
       });
       process.exitCode = exitCode;
     });
@@ -95,7 +99,8 @@ export function registerSkillCommands(cli: CAC): void {
     .command("publish", "Publish the current cli skill project")
     .option("--dry-run", "Run publish without uploading")
     .option("--tag <tag>", "Publish under a specific dist-tag")
-    .action(async (options: { dryRun?: boolean; tag?: string }) => {
+    .option("--registry <registry>", "Publish to a specific package registry")
+    .action(async (options: { dryRun?: boolean; tag?: string; registry?: string }) => {
       const resolved = await getCurrentSkillProject();
       const skill = await loadSkillDefinition(resolved.projectPath);
       await writeSkillDocsMarkdown(skill);
@@ -106,6 +111,9 @@ export function registerSkillCommands(cli: CAC): void {
       }
       if (options.tag) {
         publishArgs.push("--tag", options.tag);
+      }
+      if (options.registry) {
+        publishArgs.push("--registry", options.registry);
       }
 
       await runBunStreaming(publishArgs, resolved.projectPath);

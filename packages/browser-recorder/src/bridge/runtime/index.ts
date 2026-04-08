@@ -5,6 +5,8 @@ import { registerRecorderEvents } from "./events.js";
 if (!shouldSkipRecorderInjection()) {
   markRecorderInjected();
   const state = createRecorderState();
-  mountIndicator(state);
+  if (state.showIndicator) {
+    mountIndicator(state);
+  }
   registerRecorderEvents(state);
 }

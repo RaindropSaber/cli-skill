@@ -13,8 +13,11 @@ export function registerBridgeBindings(args: {
   getState: () => RecorderSessionState;
   isRecording: () => boolean;
   actionStore: ReturnTypeCreateActionStore;
+  getPageId: (page: Page) => string;
+  onActionPage?: (page: Page, record: RecorderActionRecord) => void;
   onClickAction: (page: Page, record: RecorderActionRecord) => Promise<void>;
   onDomSnapshot: (
+    page: Page | undefined,
     payload: DomSnapshotPayload,
     trigger?: { actionId?: string; type?: RecorderActionRecord["type"] | "mutation"; selector?: string; text?: string },
   ) => Promise<void>;
@@ -28,9 +31,13 @@ export function registerBridgeBindings(args: {
 
       const nextRecord: RecorderActionRecord = {
         actionId: createId("act"),
+        pageId: source.page ? args.getPageId(source.page) : undefined,
         ...record,
       };
       await args.actionStore.append(nextRecord);
+      if (source.page) {
+        args.onActionPage?.(source.page, nextRecord);
+      }
 
       if (source.page && nextRecord.type === "click") {
         queueMicrotask(() => {
@@ -42,7 +49,7 @@ export function registerBridgeBindings(args: {
       if (!args.isRecording()) {
         return;
       }
-      await args.onDomSnapshot(payload, {
+      await args.onDomSnapshot(_source.page, payload, {
         type: "mutation",
         selector: payload.targetSelector,
         text: payload.targetText,

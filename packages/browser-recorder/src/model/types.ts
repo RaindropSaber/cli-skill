@@ -9,6 +9,7 @@ export interface RecorderLocatorHints {
 
 export interface RecorderActionRecord {
   actionId: string;
+  pageId?: string;
   type: "click" | "input" | "change" | "submit" | "navigate" | "tab_switch";
   timestamp: string;
   url: string;
@@ -31,6 +32,7 @@ export interface RecorderActionRecord {
 
 export interface RecorderNetworkRecord {
   networkId: string;
+  pageId?: string;
   phase: "request" | "response";
   timestamp: string;
   url: string;
@@ -45,6 +47,7 @@ export interface RecorderNetworkRecord {
 
 export interface RecorderDomSnapshotRecord {
   domSnapshotId: string;
+  pageId?: string;
   timestamp: string;
   url: string;
   title?: string;
@@ -60,6 +63,7 @@ export interface RecorderDomSnapshotRecord {
 
 export interface RecorderTimelineRecord {
   eventId: string;
+  pageId?: string;
   type:
     | "navigation"
     | "action"
@@ -99,7 +103,7 @@ export interface BrowserRecorderResult {
   sessionId: string;
   recordingDir: string;
   summaryPath: string;
-  stopReason: "user_stop" | "browser_closed" | "error";
+  stopReason: "user_stop" | "browser_closed" | "error" | "completed";
 }
 
 export interface RecorderSessionState {

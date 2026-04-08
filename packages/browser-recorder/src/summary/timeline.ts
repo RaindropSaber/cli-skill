@@ -16,6 +16,7 @@ export function createTimeline(args: {
     if (action.type === "navigate") {
       items.push({
         eventId: `evt_action_${action.actionId}`,
+        pageId: action.pageId,
         type: "navigation",
         timestamp: action.timestamp,
         title: "页面跳转",
@@ -28,6 +29,7 @@ export function createTimeline(args: {
 
     items.push({
       eventId: `evt_action_${action.actionId}`,
+      pageId: action.pageId,
       type: "action",
       timestamp: action.timestamp,
       title:
@@ -58,6 +60,7 @@ export function createTimeline(args: {
   for (const record of args.network) {
     items.push({
       eventId: `evt_network_${record.phase}_${record.networkId}`,
+      pageId: record.pageId,
       type: record.phase === "request" ? "request_started" : "request_finished",
       timestamp: record.timestamp,
       title:
@@ -73,6 +76,7 @@ export function createTimeline(args: {
   for (const snapshot of args.domSnapshots) {
     items.push({
       eventId: `evt_dom_${snapshot.domSnapshotId}`,
+      pageId: snapshot.pageId,
       type: "dom_changed",
       timestamp: snapshot.timestamp,
       title: "页面变化",

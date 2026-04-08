@@ -35,6 +35,23 @@
 
 其中 `ctx` 会根据 `plugins` 自动推导。
 
+## 配置模型
+
+`@cli-skill/core` 运行时看到的是一份已经合并好的配置对象：
+
+- 默认值
+- `~/.cli-skill-config.json`
+- 当前目录及父目录里的 `.cli-skill-config.json`
+
+平台不会再自动给每个技能包一层 `skillConfig.<skillName>`。
+
+如果某个技能需要自己的配置隔离，应该由技能自己定义 key 结构，例如：
+
+- `mySkill.baseUrl`
+- `mySkill.env`
+
+运行时会直接把这份合并后的顶层配置交给技能自己的 `config schema` 去解析。
+
 ## 插件能力
 
 插件负责给工具提供运行时上下文。
@@ -51,6 +68,17 @@
 1. `setup`
 2. `tool.run`
 3. `dispose`
+
+如果全局或目录配置里打开了：
+
+- `recordBrowserRun`
+
+那么 `browserPlugin` 会在浏览器工具执行时顺手沉淀一份本次运行记录。即使工具失败，错误里也会带上：
+
+- `recordingDir`
+- `summaryPath`
+
+这样上层 agent 可以先复盘这次运行过程，再决定如何调整工具。
 
 ## 示例
 
@@ -104,10 +132,11 @@ export default defineSkill({
 
 默认会共享登录态，以及浏览器级的地址栏历史等浏览器记忆。
 
-如果需要改路径，可以通过 `~/.cli-skill/config.json` 里的：
+如果需要改路径，可以通过 `~/.cli-skill-config.json` 里的：
 
 - `browserUserDataDir`
 - `browserSourceUserDataDir`
+- `recordBrowserRun`
 
 覆盖默认值。
 
