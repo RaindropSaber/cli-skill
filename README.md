@@ -119,6 +119,14 @@ cli-skill mount
 cli-skill browser record
 ```
 
+如果你希望浏览器工具执行失败后也能复盘本次运行过程，可以在全局或项目目录的 `.cli-skill-config.json` 里打开：
+
+```json
+{
+  "recordBrowserRun": true
+}
+```
+
 如果你想把本机 Chrome 里一部分状态同步到 `cli-skill` 使用的浏览器目录，可以手动执行：
 
 ```bash
@@ -131,7 +139,8 @@ cli-skill browser sync
 
 ```bash
 bun install
-bun link ./packages/cli
+cd ./packages/cli
+bun link
 ```
 
 常用开发命令：

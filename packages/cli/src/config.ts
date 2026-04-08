@@ -1,22 +1,28 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import get from "lodash/get";
+import merge from "lodash/merge";
 import set from "lodash/set";
 import unset from "lodash/unset";
 import os from "node:os";
 import path from "node:path";
 
-export interface BrowserSkillCliConfig {
+export interface CliSkillUserConfig {
+  [key: string]: unknown;
   skillsRoot?: string;
-  installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
   browserExecutablePath?: string;
   browserUserDataDir?: string;
   browserSourceUserDataDir?: string;
-  skillConfig?: Record<string, Record<string, unknown>>;
+  env?: Record<string, string>;
+  recordBrowserRun?: boolean;
 }
 
 function getUserHome(): string {
   return process.env.HOME || os.homedir();
+}
+
+function createHomeRelativePath(...segments: string[]): string {
+  return path.join("~", ...segments);
 }
 
 function resolveUserPath(inputPath: string): string {
@@ -31,95 +37,176 @@ function resolveUserPath(inputPath: string): string {
   return inputPath;
 }
 
-export function getBrowserSkillHome(): string {
+export function getCliSkillHome(): string {
   return path.join(getUserHome(), ".cli-skill");
 }
 
-export function getBrowserSkillConfigPath(): string {
-  return path.join(getBrowserSkillHome(), "config.json");
+export function getCliSkillConfigPath(): string {
+  return path.join(getUserHome(), ".cli-skill-config.json");
 }
 
-export async function loadBrowserSkillCliConfig(): Promise<BrowserSkillCliConfig> {
+export function getLocalCliSkillConfigPath(cwd = process.cwd()): string {
+  return path.join(cwd, ".cli-skill-config.json");
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
   try {
-    const raw = await readFile(getBrowserSkillConfigPath(), "utf8");
-    return (JSON.parse(raw) as BrowserSkillCliConfig) ?? {};
+    await readFile(filePath, "utf8");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function findNearestLocalCliSkillConfigPath(
+  cwd = process.cwd(),
+): Promise<string | null> {
+  let currentDir = path.resolve(cwd);
+
+  while (true) {
+    const filePath = getLocalCliSkillConfigPath(currentDir);
+    if (await pathExists(filePath)) {
+      return filePath;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return null;
+    }
+    currentDir = parentDir;
+  }
+}
+
+async function loadLocalCliSkillConfig(filePath: string): Promise<CliSkillUserConfig | null> {
+  try {
+    const raw = await readFile(filePath, "utf8");
+    return (JSON.parse(raw) as CliSkillUserConfig) ?? {};
+  } catch {
+    return null;
+  }
+}
+
+async function loadCliSkillConfigChain(cwd = process.cwd()): Promise<CliSkillUserConfig[]> {
+  const chain: CliSkillUserConfig[] = [];
+  let currentDir = path.resolve(cwd);
+
+  while (true) {
+    const localConfig = await loadLocalCliSkillConfig(getLocalCliSkillConfigPath(currentDir));
+    if (localConfig) {
+      chain.push(localConfig);
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return chain.reverse();
+}
+
+export async function loadCliSkillConfig(): Promise<CliSkillUserConfig> {
+  return loadCliSkillConfigFile(getCliSkillConfigPath());
+}
+
+export async function loadCliSkillConfigFile(filePath: string): Promise<CliSkillUserConfig> {
+  try {
+    const raw = await readFile(filePath, "utf8");
+    return (JSON.parse(raw) as CliSkillUserConfig) ?? {};
   } catch {
     return {};
   }
 }
 
-export function getDefaultBrowserSkillCliConfig(): Required<
-  Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir" | "skillConfig">
+export function getDefaultCliSkillConfig(): Required<
+  Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir" | "env" | "recordBrowserRun">
 > {
   const systemChromeSourceUserDataDir =
     process.platform === "darwin"
-      ? path.join(getUserHome(), "Library", "Application Support", "Google", "Chrome", "Default")
+      ? createHomeRelativePath("Library", "Application Support", "Google", "Chrome", "Default")
       : "";
   return {
-    skillsRoot: path.join(getBrowserSkillHome(), "skills"),
-    installedSkillsRoot: path.join(getBrowserSkillHome(), "installed"),
-    agentsSkillsRoot: path.join(getUserHome(), ".agents", "skills"),
+    skillsRoot: createHomeRelativePath(".cli-skill", "skills"),
+    agentsSkillsRoot: createHomeRelativePath(".agents", "skills"),
     browserExecutablePath: "",
-    browserUserDataDir: path.join(getBrowserSkillHome(), "browser", "user-data"),
+    browserUserDataDir: createHomeRelativePath(".cli-skill", "browser", "user-data"),
     browserSourceUserDataDir: systemChromeSourceUserDataDir,
-    skillConfig: {},
+    env: {},
+    recordBrowserRun: false,
   };
 }
 
-export async function getResolvedBrowserSkillCliConfig(): Promise<
-  Required<Pick<BrowserSkillCliConfig, "skillsRoot" | "installedSkillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
-    BrowserSkillCliConfig
+export async function getResolvedCliSkillConfig(): Promise<
+  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
+    CliSkillUserConfig
+>;
+export async function getResolvedCliSkillConfig(cwd: string): Promise<
+  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
+    CliSkillUserConfig
+>;
+export async function getResolvedCliSkillConfig(cwd = process.cwd()): Promise<
+  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
+    CliSkillUserConfig
 > {
-  const config = await loadBrowserSkillCliConfig();
-  const defaults = getDefaultBrowserSkillCliConfig();
+  const globalConfig = await loadCliSkillConfig();
+  const localConfigChain = await loadCliSkillConfigChain(cwd);
+  const defaults = getDefaultCliSkillConfig();
+  const config = merge({}, defaults, globalConfig, ...localConfigChain) as CliSkillUserConfig;
 
   return {
     ...config,
-    skillConfig: config.skillConfig ?? defaults.skillConfig,
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
-    installedSkillsRoot: resolveUserPath(config.installedSkillsRoot ?? defaults.installedSkillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
     browserExecutablePath: resolveUserPath(config.browserExecutablePath ?? defaults.browserExecutablePath),
     browserUserDataDir: resolveUserPath(config.browserUserDataDir ?? defaults.browserUserDataDir),
     browserSourceUserDataDir: resolveUserPath(config.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir),
+    env: config.env ?? defaults.env,
+    recordBrowserRun: config.recordBrowserRun ?? defaults.recordBrowserRun,
   };
 }
 
-export async function ensureBrowserSkillCliConfig(): Promise<string> {
-  const configPath = getBrowserSkillConfigPath();
-  const defaults = getDefaultBrowserSkillCliConfig();
+export async function ensureCliSkillConfig(): Promise<string> {
+  const configPath = getCliSkillConfigPath();
+  const defaults = getDefaultCliSkillConfig();
 
   try {
     const raw = await readFile(configPath, "utf8");
-    const parsed = (JSON.parse(raw) as BrowserSkillCliConfig) ?? {};
-    const nextConfig: BrowserSkillCliConfig = {
+    const parsed = (JSON.parse(raw) as CliSkillUserConfig) ?? {};
+    const nextConfig: CliSkillUserConfig = {
       skillsRoot: parsed.skillsRoot ?? defaults.skillsRoot,
-      installedSkillsRoot: parsed.installedSkillsRoot ?? defaults.installedSkillsRoot,
       agentsSkillsRoot: parsed.agentsSkillsRoot ?? defaults.agentsSkillsRoot,
       browserExecutablePath: parsed.browserExecutablePath ?? defaults.browserExecutablePath,
       browserUserDataDir: parsed.browserUserDataDir ?? defaults.browserUserDataDir,
       browserSourceUserDataDir: parsed.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir,
-      skillConfig: parsed.skillConfig ?? defaults.skillConfig,
+      env: parsed.env ?? defaults.env,
+      recordBrowserRun: parsed.recordBrowserRun ?? defaults.recordBrowserRun,
     };
 
     if (JSON.stringify(parsed) !== JSON.stringify(nextConfig)) {
-      await saveBrowserSkillCliConfig(nextConfig);
+      await saveCliSkillConfig(nextConfig);
     }
 
     return configPath;
   } catch {
-    await saveBrowserSkillCliConfig(defaults);
+    await saveCliSkillConfig(defaults);
     return configPath;
   }
 }
 
-export async function saveBrowserSkillCliConfig(config: BrowserSkillCliConfig): Promise<void> {
-  const configPath = getBrowserSkillConfigPath();
-  await mkdir(path.dirname(configPath), { recursive: true });
-  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+export async function saveCliSkillConfig(config: CliSkillUserConfig): Promise<void> {
+  await saveCliSkillConfigFile(getCliSkillConfigPath(), config);
 }
 
-export function getConfigValue(config: BrowserSkillCliConfig, keyPath?: string): unknown {
+export async function saveCliSkillConfigFile(
+  filePath: string,
+  config: CliSkillUserConfig,
+): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+}
+
+export function getConfigValue(config: CliSkillUserConfig, keyPath?: string): unknown {
   if (!keyPath) {
     return config;
   }
@@ -128,19 +215,19 @@ export function getConfigValue(config: BrowserSkillCliConfig, keyPath?: string):
 }
 
 export function setConfigValue(
-  config: BrowserSkillCliConfig,
+  config: CliSkillUserConfig,
   keyPath: string,
   value: unknown,
-): BrowserSkillCliConfig {
+): CliSkillUserConfig {
   const nextConfig = structuredClone(config);
   set(nextConfig as object, keyPath, value);
   return nextConfig;
 }
 
 export function unsetConfigValue(
-  config: BrowserSkillCliConfig,
+  config: CliSkillUserConfig,
   keyPath: string,
-): BrowserSkillCliConfig {
+): CliSkillUserConfig {
   const nextConfig = structuredClone(config);
   unset(nextConfig as object, keyPath);
   return nextConfig;

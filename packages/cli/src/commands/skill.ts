@@ -34,12 +34,14 @@ export function registerSkillCommands(cli: CAC): void {
   cli
     .command("exec <skillName> <toolName> [rawInput]", "Execute a tool from a registered cli skill")
     .option("--headed", "Run browser tools with a visible browser window")
-    .action(async (skillName: string, toolName: string, rawInput: string | undefined, options: { headed?: boolean }) => {
+    .option("--headless", "Run browser tools without a visible browser window")
+    .action(async (skillName: string, toolName: string, rawInput: string | undefined, options: { headed?: boolean; headless?: boolean }) => {
       const resolved = await resolveRegisteredSkillProject(skillName);
       const skill = await loadSkillDefinition(resolved.projectPath);
       const exitCode = await runTool(skill, toolName, rawInput, {
         rootDir: resolved.projectPath,
         headed: options.headed,
+        headless: options.headless,
       });
       process.exitCode = exitCode;
     });
@@ -54,12 +56,14 @@ export function registerSkillCommands(cli: CAC): void {
   cli
     .command("run <toolName> [rawInput]", "Run a tool in the current cli skill project")
     .option("--headed", "Run browser tools with a visible browser window")
-    .action(async (toolName: string, rawInput: string | undefined, options: { headed?: boolean }) => {
+    .option("--headless", "Run browser tools without a visible browser window")
+    .action(async (toolName: string, rawInput: string | undefined, options: { headed?: boolean; headless?: boolean }) => {
       const resolved = await getCurrentSkillProject();
       const skill = await loadSkillDefinition(resolved.projectPath);
       const exitCode = await runTool(skill, toolName, rawInput, {
         rootDir: resolved.projectPath,
         headed: options.headed,
+        headless: options.headless,
       });
       process.exitCode = exitCode;
     });

@@ -9,21 +9,14 @@ export interface RuntimePaths {
 }
 
 export interface CliSkillConfig {
+  [key: string]: unknown;
   skillsRoot?: string;
-  installedSkillsRoot?: string;
   agentsSkillsRoot?: string;
   browserExecutablePath?: string;
   browserUserDataDir?: string;
   browserSourceUserDataDir?: string;
   env?: Record<string, string>;
-  skillConfig?: Record<string, Record<string, unknown>>;
-  skills?: Record<
-    string,
-    {
-      env?: Record<string, string>;
-      storageRoot?: string;
-    }
-  >;
+  recordBrowserRun?: boolean;
 }
 
 export interface SkillConfigAccessor<ConfigValue = unknown> {
@@ -40,6 +33,12 @@ export interface BaseToolContext {
   env: Record<string, string>;
   paths: RuntimePaths;
   storageStatePath: string;
+}
+
+export interface BrowserRunRecordingInfo {
+  sessionId: string;
+  recordingDir: string;
+  summaryPath: string;
 }
 
 export interface ToolExample {
@@ -86,6 +85,7 @@ export interface ToolDefinition<
   name: string;
   description: string;
   examples?: ToolExample[];
+  headed?: boolean;
   plugins: Plugins;
   inputSchema: InputSchema;
   outputSchema: OutputSchema;

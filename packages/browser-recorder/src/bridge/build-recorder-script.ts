@@ -23,7 +23,12 @@ async function readTemplate(): Promise<string> {
   return await templatePromise;
 }
 
-export async function buildRecorderBridgeScript(sessionId: string): Promise<string> {
+export async function buildRecorderBridgeScript(
+  sessionId: string,
+  options: { showIndicator?: boolean } = {},
+): Promise<string> {
   const template = await readTemplate();
-  return template.replaceAll("__SESSION_ID__", JSON.stringify(sessionId));
+  return template
+    .replaceAll("__SESSION_ID__", JSON.stringify(sessionId))
+    .replaceAll("__SHOW_INDICATOR__", options.showIndicator === false ? "false" : "true");
 }

@@ -1,8 +1,8 @@
 export {
-  getBrowserSkillConfigPath,
-  getBrowserSkillHome,
-  getResolvedBrowserSkillConfig,
-  loadBrowserSkillConfig,
+  getCliSkillConfigPath,
+  getCliSkillHome,
+  getResolvedCliSkillConfig,
+  loadCliSkillConfig,
 } from "./config";
 export { resolveSkillRoot } from "./paths";
 export { listTools, runTool } from "./run";
@@ -13,6 +13,7 @@ export { definePlugin, defineSkill, defineTool } from "./skill";
 export type {
   AnyTool,
   BaseToolContext,
+  BrowserRunRecordingInfo,
   CliSkillConfig,
   InferPluginsContext,
   InferToolsContext,

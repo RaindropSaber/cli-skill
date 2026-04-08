@@ -99,7 +99,7 @@ export interface BrowserRecorderResult {
   sessionId: string;
   recordingDir: string;
   summaryPath: string;
-  stopReason: "user_stop" | "browser_closed" | "error";
+  stopReason: "user_stop" | "browser_closed" | "error" | "completed";
 }
 
 export interface RecorderSessionState {

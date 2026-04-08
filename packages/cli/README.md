@@ -24,10 +24,34 @@ mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(comma
 - 维护本机技能注册表
 - 安装和卸载已发布技能
 - 挂载和取消挂载技能
-- 读写 `~/.cli-skill/config.json`
+- 读写 `~/.cli-skill-config.json`，并向上合并目录中的 `.cli-skill-config.json`
 - 启动浏览器录制
 - 手动同步浏览器用户目录
 - 把录制结果整理成 `summary + timeline + 明细` 这套统一产物
+- 在浏览器工具失败时，保留可复盘的本次运行记录
+
+## 配置行为
+
+`@cli-skill/cli` 只负责：
+
+- 找到全局配置文件
+- 向上合并目录里的本地配置文件
+- 处理 `config get/set/unset` 的读写作用域
+
+它不会在平台层自动把配置包成“某个技能自己的命名空间”。
+
+也就是说：
+
+- 全局文件：
+  - `~/.cli-skill-config.json`
+- 本地文件：
+  - 当前目录或父目录里的 `.cli-skill-config.json`
+
+它们共享同一套 key 空间。某个技能如果想隔离自己的配置，应该自己约定 key，例如：
+
+- `mySkill.baseUrl`
+- `mySkill.env`
+- `mySkill.keyword`
 
 ## 常见命令
 
@@ -78,11 +102,28 @@ cli-skill mount
 cli-skill run <tool-name> '{"foo":"bar"}'
 ```
 
+如果这个技能包含浏览器工具，并且配置里打开了：
+
+```json
+{
+  "recordBrowserRun": true
+}
+```
+
+那么每次浏览器工具执行都会在当前技能目录的 `storage/browser-runs/` 下沉淀一份本次运行记录。
+
 ### 执行一个已注册技能的工具
 
 ```bash
 cli-skill exec <skill-name> <tool-name> '{"foo":"bar"}'
 ```
+
+如果工具失败，而且错误里已经带了：
+
+- `recordingDir`
+- `summaryPath`
+
+默认先复盘这次运行记录，再改工具。
 
 ### 开始一次浏览器录制
 
@@ -106,6 +147,24 @@ cli-skill browser record
 - `actions.jsonl`
 - `network.jsonl`
 - `dom.jsonl`
+
+### 浏览器工具失败后的默认处理
+
+如果浏览器工具执行失败，并且这次运行开启了 `recordBrowserRun`，默认按这个顺序处理：
+
+1. 先看错误里返回的 `recordingDir` 和 `summaryPath`
+2. 先读 `summary.json`
+3. 再读 `timeline.jsonl`
+4. 只有在需要更多上下文时，再去查：
+   - `actions.jsonl`
+   - `network.jsonl`
+   - `dom.jsonl`
+5. 先判断更像：
+   - 选择器问题
+   - 页面时序问题
+   - 登录态问题
+   - 页面结构变化问题
+6. 再调整工具
 
 ### 手动同步浏览器用户目录
 
@@ -149,6 +208,22 @@ cli-skill browser sync
   - 默认会尝试读取本机 Chrome 的 `Default` 目录
 - 浏览器录制结果：
   - `~/.cli-skill/browser-recorder`
+
+## 配置文件
+
+- 全局：
+  - `~/.cli-skill-config.json`
+- 本地：
+  - 逐级向上查找 `.cli-skill-config.json`
+
+默认读取会按层级合并。
+
+默认写入时：
+
+- `cli-skill config set ...`
+  - 写最近的本地 `.cli-skill-config.json`
+- `cli-skill config set ... --global`
+  - 写 `~/.cli-skill-config.json`
 
 ## 技能自带命令
 

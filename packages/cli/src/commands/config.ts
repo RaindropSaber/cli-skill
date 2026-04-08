@@ -1,14 +1,18 @@
 import type { CAC } from "cac";
 import {
-  getBrowserSkillConfigPath,
+  findNearestLocalCliSkillConfigPath,
+  getCliSkillConfigPath,
   getConfigValue,
-  loadBrowserSkillCliConfig,
+  getLocalCliSkillConfigPath,
+  getResolvedCliSkillConfig,
+  loadCliSkillConfig,
+  loadCliSkillConfigFile,
   parseConfigCliValue,
-  saveBrowserSkillCliConfig,
+  saveCliSkillConfig,
+  saveCliSkillConfigFile,
   setConfigValue,
   unsetConfigValue,
 } from "../config";
-import { getCurrentSkillProject } from "../registry";
 
 function printConfigValue(value: unknown): void {
   if (typeof value === "string") {
@@ -28,23 +32,29 @@ export function registerConfigCommand(cli: CAC): void {
   cli
     .command("config [...args]", "Manage cli-skill config")
     .usage("config get [keyPath]\n  cli-skill config set <keyPath> <value>\n  cli-skill config unset <keyPath>")
-    .action(async (args: string[] = []) => {
+    .option("--global", "Use the global config file in the home directory")
+    .option("--local", "Use the nearest local config file, or create one in the current directory")
+    .action(async (args: string[] = [], options?: { global?: boolean; local?: boolean }) => {
       const [subcommand, keyPath, rawValue] = args;
-      let currentSkillName: string | null = null;
+      const useGlobal = Boolean(options?.global);
+      const useLocal = Boolean(options?.local);
 
-      try {
-        currentSkillName = (await getCurrentSkillProject()).skillName;
-      } catch {}
+      if (useGlobal && useLocal) {
+        throw new Error("Use either --global or --local, not both.");
+      }
 
-      const scopedKeyPath = currentSkillName && keyPath
-        ? `skillConfig.${currentSkillName}.${keyPath}`
-        : currentSkillName
-          ? `skillConfig.${currentSkillName}`
-          : keyPath;
+      async function getLocalConfigTargetPath(): Promise<string> {
+        return (await findNearestLocalCliSkillConfigPath(process.cwd()))
+          ?? getLocalCliSkillConfigPath(process.cwd());
+      }
 
       if (subcommand === "get") {
-        const currentConfig = await loadBrowserSkillCliConfig();
-        const value = getConfigValue(currentConfig, scopedKeyPath);
+        const currentConfig = useGlobal
+          ? await loadCliSkillConfig()
+          : useLocal
+          ? await loadCliSkillConfigFile(await getLocalConfigTargetPath())
+          : await getResolvedCliSkillConfig(process.cwd());
+        const value = getConfigValue(currentConfig, keyPath);
         printConfigValue(value);
         return;
       }
@@ -54,14 +64,23 @@ export function registerConfigCommand(cli: CAC): void {
           throw new Error("Usage: cli-skill config set <keyPath> <value>");
         }
 
-        const currentConfig = await loadBrowserSkillCliConfig();
+        const targetPath = useGlobal
+          ? getCliSkillConfigPath()
+          : await getLocalConfigTargetPath();
+        const currentConfig = useGlobal
+          ? await loadCliSkillConfig()
+          : await loadCliSkillConfigFile(targetPath);
         const nextConfig = setConfigValue(
           currentConfig,
-          scopedKeyPath!,
+          keyPath,
           parseConfigCliValue(rawValue),
         );
-        await saveBrowserSkillCliConfig(nextConfig);
-        console.log(getBrowserSkillConfigPath());
+        if (useGlobal) {
+          await saveCliSkillConfig(nextConfig);
+        } else {
+          await saveCliSkillConfigFile(targetPath, nextConfig);
+        }
+        console.log(targetPath);
         return;
       }
 
@@ -70,10 +89,19 @@ export function registerConfigCommand(cli: CAC): void {
           throw new Error("Usage: cli-skill config unset <keyPath>");
         }
 
-        const currentConfig = await loadBrowserSkillCliConfig();
-        const nextConfig = unsetConfigValue(currentConfig, scopedKeyPath!);
-        await saveBrowserSkillCliConfig(nextConfig);
-        console.log(getBrowserSkillConfigPath());
+        const targetPath = useGlobal
+          ? getCliSkillConfigPath()
+          : await getLocalConfigTargetPath();
+        const currentConfig = useGlobal
+          ? await loadCliSkillConfig()
+          : await loadCliSkillConfigFile(targetPath);
+        const nextConfig = unsetConfigValue(currentConfig, keyPath);
+        if (useGlobal) {
+          await saveCliSkillConfig(nextConfig);
+        } else {
+          await saveCliSkillConfigFile(targetPath, nextConfig);
+        }
+        console.log(targetPath);
         return;
       }
 
