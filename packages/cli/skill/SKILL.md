@@ -236,6 +236,12 @@ bun install
 - `mount` 不应隐式执行 `install`。
 - `install` / `uninstall` 面向已发布技能。
 - `publish` 只针对当前目录的本地技能。
+- `install` 直接接受包名。
+- `install` 只负责：
+  - 安装包
+  - 写本机注册表
+  - 接通技能 bin
+- 如果要让 agent 直接使用一个已安装技能，安装后还需要再执行一次 `mount`。
 - 技能 bin 只负责：
   - `list`
   - 直接执行工具
@@ -272,7 +278,7 @@ bun install
 | 创建技能 | `cli-skill create <skill-name> --cli-name <cli-name> [--template <templateName>]` |
 | 查看技能列表 | `cli-skill list` |
 | 查看已注册技能的工具列表 | `cli-skill tools <skill-name>` |
-| 安装已发布技能 | `cli-skill install <skill-name>` |
+| 安装已发布技能 | `cli-skill install <package-name> [--registry <registry>]` |
 | 卸载已发布技能 | `cli-skill uninstall <package-name>` |
 | 查看工具列表 | `cli-skill tools` |
 | 运行当前目录工具 | `cli-skill run <tool-name> [rawInput]` |
@@ -283,7 +289,22 @@ bun install
 | 挂载当前技能 | `cli-skill mount [targetPath]` |
 | 取消挂载当前技能 | `cli-skill unmount [targetPath]` |
 | 构建技能产物 | `cli-skill build` |
-| 发布当前技能 | `cli-skill publish [--dry-run] [--tag <tag>]` |
+| 发布当前技能 | `cli-skill publish [--dry-run] [--tag <tag>] [--registry <registry>]` |
+
+## 已发布技能的安装心智
+
+安装已发布技能时，直接使用包名，例如：
+
+- `cli-skill install @your-scope/cli-skill-demo`
+- `cli-skill install @your-scope/cli-skill-demo --registry https://registry.example.com/`
+
+安装完成后：
+
+1. 包会被放进 `~/.cli-skill/skills/<skill-name>`
+2. 本机注册表会记录这个技能
+3. 技能自己的 bin 会被接通
+4. 如果要给 agent 使用，还要再执行：
+   - `cli-skill mount <skill-name>`
 
 ## 默认目录
 

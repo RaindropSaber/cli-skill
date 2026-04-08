@@ -53,6 +53,25 @@ mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(comma
 - `mySkill.env`
 - `mySkill.keyword`
 
+## 安装与发布
+
+安装已发布技能时，直接使用包名。
+
+例如：
+
+```bash
+cli-skill install @your-scope/cli-skill-demo
+cli-skill install @your-scope/cli-skill-demo --registry https://registry.example.com/
+```
+
+`publish` 也支持显式指定 registry：
+
+```bash
+cli-skill publish --registry https://registry.example.com/
+```
+
+安装完成后，如果要让 agent 直接使用这个技能，还需要再执行一次 `cli-skill mount <skill-name>`。
+
 ## 常见命令
 
 ### 平台命令
@@ -61,7 +80,7 @@ mkdir -p ~/.agents/skills && CLI_SKILL_DIR="$(cd "$(dirname "$(realpath "$(comma
 cli-skill create <skillName> --cli-name <cliName> [--template <templateName>]
 cli-skill list
 cli-skill tools <skillName>
-cli-skill install <skillName> [--packageName <packageName>]
+cli-skill install <packageName> [--registry <registry>]
 cli-skill uninstall <packageName>
 cli-skill config get [keyPath]
 cli-skill config set <keyPath> <value>
@@ -81,7 +100,7 @@ cli-skill config unset <keyPath>
 cli-skill build
 cli-skill mount [targetPath]
 cli-skill unmount [targetPath]
-cli-skill publish [--dry-run] [--tag <tag>]
+cli-skill publish [--dry-run] [--tag <tag>] [--registry <registry>]
 ```
 
 ## 典型工作流
@@ -111,6 +130,21 @@ cli-skill run <tool-name> '{"foo":"bar"}'
 ```
 
 那么每次浏览器工具执行都会在当前技能目录的 `storage/browser-runs/` 下沉淀一份本次运行记录。
+
+### 安装一个已发布技能并挂给 agent
+
+```bash
+cli-skill install @your-scope/cli-skill-demo
+cli-skill mount demo
+```
+
+`install` 只会：
+
+- 把包安装到 `~/.cli-skill/skills`
+- 写入本机注册表
+- 接通技能 bin
+
+如果要让 agent 直接使用这个技能，还需要再执行一次 `mount`。
 
 ### 执行一个已注册技能的工具
 

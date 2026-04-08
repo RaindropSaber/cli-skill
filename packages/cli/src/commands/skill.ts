@@ -99,7 +99,8 @@ export function registerSkillCommands(cli: CAC): void {
     .command("publish", "Publish the current cli skill project")
     .option("--dry-run", "Run publish without uploading")
     .option("--tag <tag>", "Publish under a specific dist-tag")
-    .action(async (options: { dryRun?: boolean; tag?: string }) => {
+    .option("--registry <registry>", "Publish to a specific package registry")
+    .action(async (options: { dryRun?: boolean; tag?: string; registry?: string }) => {
       const resolved = await getCurrentSkillProject();
       const skill = await loadSkillDefinition(resolved.projectPath);
       await writeSkillDocsMarkdown(skill);
@@ -110,6 +111,9 @@ export function registerSkillCommands(cli: CAC): void {
       }
       if (options.tag) {
         publishArgs.push("--tag", options.tag);
+      }
+      if (options.registry) {
+        publishArgs.push("--registry", options.registry);
       }
 
       await runBunStreaming(publishArgs, resolved.projectPath);

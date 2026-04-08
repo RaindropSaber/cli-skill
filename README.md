@@ -119,6 +119,20 @@ cli-skill mount
 cli-skill browser record
 ```
 
+安装一个已发布技能时，直接使用包名，而不是技能名：
+
+```bash
+cli-skill install @your-scope/cli-skill-demo
+cli-skill mount demo
+```
+
+如果你要用私有或内部 registry，也可以显式指定：
+
+```bash
+cli-skill install @your-scope/cli-skill-demo --registry https://registry.example.com/
+cli-skill publish --registry https://registry.example.com/
+```
+
 如果你希望浏览器工具执行失败后也能复盘本次运行过程，可以在全局或项目目录的 `.cli-skill-config.json` 里打开：
 
 ```json
