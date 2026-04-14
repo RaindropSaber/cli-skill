@@ -78,6 +78,10 @@
 - `recordingDir`
 - `summaryPath`
 
+这些运行记录默认会写到：
+
+- `~/.cli-skill/browser-runs`
+
 这样上层 agent 可以先复盘这次运行过程，再决定如何调整工具。
 
 ## 示例

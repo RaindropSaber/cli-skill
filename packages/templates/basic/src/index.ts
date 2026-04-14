@@ -3,8 +3,8 @@ import { sampleTool } from "./tools/sample-tool";
 
 const skill = defineSkill({
   name: "__SKILL_NAME__",
-  description: "__SKILL_NAME__ 技能的默认项目骨架。",
-  overview: "这个技能当前包含一个最小浏览器示例工具 `sample_tool`。创建真实技能时，应把这里改成你的业务目标、适用场景和核心流程说明。",
+  description: "__SKILL_NAME__ 的默认技能项目骨架。",
+  overview: "把这里改成这个技能真正要解决的任务、典型使用场景和默认流程。不要停留在模板描述本身。",
   config: {},
   tools: [sampleTool],
 });

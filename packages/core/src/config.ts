@@ -28,6 +28,10 @@ export function getCliSkillHome(): string {
   return path.join(getUserHome(), ".cli-skill");
 }
 
+export function getDefaultBrowserRunsRoot(): string {
+  return path.join(getCliSkillHome(), "browser-runs");
+}
+
 export function getCliSkillConfigPath(): string {
   return path.join(getUserHome(), ".cli-skill-config.json");
 }
@@ -76,7 +80,7 @@ export async function loadCliSkillConfig(): Promise<CliSkillConfig> {
 }
 
 export function getDefaultCliSkillConfig(): Required<
-  Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir" | "env" | "recordBrowserRun">
+  Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir" | "env" | "recordBrowserRun">
 > {
   const systemChromeSourceUserDataDir =
     process.platform === "darwin"
@@ -86,6 +90,7 @@ export function getDefaultCliSkillConfig(): Required<
     skillsRoot: createHomeRelativePath(".cli-skill", "skills"),
     agentsSkillsRoot: createHomeRelativePath(".agents", "skills"),
     browserExecutablePath: "",
+    browserRunsRoot: createHomeRelativePath(".cli-skill", "browser-runs"),
     browserUserDataDir: createHomeRelativePath(".cli-skill", "browser", "user-data"),
     browserSourceUserDataDir: systemChromeSourceUserDataDir,
     env: {},
@@ -93,9 +98,9 @@ export function getDefaultCliSkillConfig(): Required<
   };
 }
 
-export async function getResolvedCliSkillConfig(): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig>;
-export async function getResolvedCliSkillConfig(cwd: string): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig>;
-export async function getResolvedCliSkillConfig(cwd = process.cwd()): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig> {
+export async function getResolvedCliSkillConfig(): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig>;
+export async function getResolvedCliSkillConfig(cwd: string): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig>;
+export async function getResolvedCliSkillConfig(cwd = process.cwd()): Promise<Required<Pick<CliSkillConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir">> & CliSkillConfig> {
   const globalConfig = await loadCliSkillConfig();
   const localConfigChain = await loadCliSkillConfigChain(cwd);
   const defaults = getDefaultCliSkillConfig();
@@ -106,6 +111,7 @@ export async function getResolvedCliSkillConfig(cwd = process.cwd()): Promise<Re
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
     browserExecutablePath: resolveUserPath(config.browserExecutablePath ?? defaults.browserExecutablePath),
+    browserRunsRoot: resolveUserPath(config.browserRunsRoot ?? defaults.browserRunsRoot),
     browserUserDataDir: resolveUserPath(config.browserUserDataDir ?? defaults.browserUserDataDir),
     browserSourceUserDataDir: resolveUserPath(config.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir),
     env: config.env ?? defaults.env,

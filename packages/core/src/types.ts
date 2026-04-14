@@ -2,6 +2,7 @@ import type { ZodObject, ZodRawShape, ZodTypeAny, infer as ZodInfer } from "zod"
 
 export interface RuntimePaths {
   storageRoot: string;
+  browserRunsRoot: string;
   browserUserDataDir: string;
   authDir: string;
   screenshotsDir: string;
@@ -13,6 +14,7 @@ export interface CliSkillConfig {
   skillsRoot?: string;
   agentsSkillsRoot?: string;
   browserExecutablePath?: string;
+  browserRunsRoot?: string;
   browserUserDataDir?: string;
   browserSourceUserDataDir?: string;
   env?: Record<string, string>;

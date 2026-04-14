@@ -56,7 +56,7 @@ export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
     const page = context.pages()[0] ?? await context.newPage();
     if (options.globalConfig.recordBrowserRun) {
       recordingHandle = await attachBrowserRecorder({
-        storageRoot: path.join(ctx.paths.storageRoot, "browser-runs"),
+        storageRoot: ctx.paths.browserRunsRoot,
         browserUserDataDir: ctx.paths.browserUserDataDir,
         context,
         browser,

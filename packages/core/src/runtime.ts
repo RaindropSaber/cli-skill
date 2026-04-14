@@ -4,7 +4,7 @@ import get from "lodash/get";
 import set from "lodash/set";
 import path from "node:path";
 import { z } from "zod";
-import { getResolvedCliSkillConfig } from "./config";
+import { getDefaultBrowserRunsRoot, getResolvedCliSkillConfig } from "./config";
 import type {
   AnySkill,
   BaseToolContext,
@@ -19,10 +19,12 @@ const pluginCleanup = new WeakMap<object, Array<() => Promise<void>>>();
 
 export function getRuntimePaths(
   storageRoot = path.join(process.cwd(), "storage"),
+  browserRunsRoot = getDefaultBrowserRunsRoot(),
   browserUserDataDir = path.join(storageRoot, "user-data"),
 ): RuntimePaths {
   return {
     storageRoot,
+    browserRunsRoot,
     browserUserDataDir,
     authDir: path.join(browserUserDataDir, ".auth"),
     screenshotsDir: path.join(storageRoot, "screenshots"),
@@ -134,11 +136,13 @@ export async function createRuntime<Skill extends AnySkill = AnySkill>(
     fallbackProjectStorageRoot;
   const paths = getRuntimePaths(
     resolvedStorageRoot,
+    globalConfig.browserRunsRoot ?? getDefaultBrowserRunsRoot(),
     options.browserUserDataDir ?? globalConfig.browserUserDataDir ?? path.join(resolvedStorageRoot, "user-data"),
   );
   const storageStatePath = options.storageStatePath ?? path.join(paths.authDir, "user.json");
 
   await mkdir(paths.browserUserDataDir, { recursive: true });
+  await mkdir(paths.browserRunsRoot, { recursive: true });
   await mkdir(path.dirname(storageStatePath), { recursive: true });
   await mkdir(paths.screenshotsDir, { recursive: true });
   await mkdir(paths.tracesDir, { recursive: true });

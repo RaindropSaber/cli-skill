@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import path from "node:path";
 
 interface MockPage {
   url(): string;
@@ -91,6 +90,7 @@ describe("browserPlugin", () => {
       env: {},
       paths: {
         storageRoot: "/tmp/demo-storage",
+        browserRunsRoot: "/tmp/.cli-skill/browser-runs",
         browserUserDataDir: "/tmp/demo-storage/user-data",
         authDir: "/tmp/demo-storage/user-data/.auth",
         screenshotsDir: "/tmp/demo-storage/screenshots",
@@ -115,7 +115,7 @@ describe("browserPlugin", () => {
 
     expect(calls.attach).toHaveLength(1);
     expect(calls.attach[0]).toMatchObject({
-      storageRoot: path.join(ctx.paths.storageRoot, "browser-runs"),
+      storageRoot: ctx.paths.browserRunsRoot,
       browserUserDataDir: ctx.paths.browserUserDataDir,
       showIndicator: false,
     });
@@ -144,6 +144,7 @@ describe("browserPlugin", () => {
       env: {},
       paths: {
         storageRoot: "/tmp/demo-storage",
+        browserRunsRoot: "/tmp/.cli-skill/browser-runs",
         browserUserDataDir: "/tmp/demo-storage/user-data",
         authDir: "/tmp/demo-storage/user-data/.auth",
         screenshotsDir: "/tmp/demo-storage/screenshots",

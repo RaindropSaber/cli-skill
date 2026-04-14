@@ -11,6 +11,7 @@ export interface CliSkillUserConfig {
   skillsRoot?: string;
   agentsSkillsRoot?: string;
   browserExecutablePath?: string;
+  browserRunsRoot?: string;
   browserUserDataDir?: string;
   browserSourceUserDataDir?: string;
   env?: Record<string, string>;
@@ -120,7 +121,7 @@ export async function loadCliSkillConfigFile(filePath: string): Promise<CliSkill
 }
 
 export function getDefaultCliSkillConfig(): Required<
-  Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir" | "env" | "recordBrowserRun">
+  Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir" | "env" | "recordBrowserRun">
 > {
   const systemChromeSourceUserDataDir =
     process.platform === "darwin"
@@ -130,6 +131,7 @@ export function getDefaultCliSkillConfig(): Required<
     skillsRoot: createHomeRelativePath(".cli-skill", "skills"),
     agentsSkillsRoot: createHomeRelativePath(".agents", "skills"),
     browserExecutablePath: "",
+    browserRunsRoot: createHomeRelativePath(".cli-skill", "browser-runs"),
     browserUserDataDir: createHomeRelativePath(".cli-skill", "browser", "user-data"),
     browserSourceUserDataDir: systemChromeSourceUserDataDir,
     env: {},
@@ -138,15 +140,15 @@ export function getDefaultCliSkillConfig(): Required<
 }
 
 export async function getResolvedCliSkillConfig(): Promise<
-  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
+  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir">> &
     CliSkillUserConfig
 >;
 export async function getResolvedCliSkillConfig(cwd: string): Promise<
-  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
+  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir">> &
     CliSkillUserConfig
 >;
 export async function getResolvedCliSkillConfig(cwd = process.cwd()): Promise<
-  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserUserDataDir" | "browserSourceUserDataDir">> &
+  Required<Pick<CliSkillUserConfig, "skillsRoot" | "agentsSkillsRoot" | "browserExecutablePath" | "browserRunsRoot" | "browserUserDataDir" | "browserSourceUserDataDir">> &
     CliSkillUserConfig
 > {
   const globalConfig = await loadCliSkillConfig();
@@ -159,6 +161,7 @@ export async function getResolvedCliSkillConfig(cwd = process.cwd()): Promise<
     skillsRoot: resolveUserPath(config.skillsRoot ?? defaults.skillsRoot),
     agentsSkillsRoot: resolveUserPath(config.agentsSkillsRoot ?? defaults.agentsSkillsRoot),
     browserExecutablePath: resolveUserPath(config.browserExecutablePath ?? defaults.browserExecutablePath),
+    browserRunsRoot: resolveUserPath(config.browserRunsRoot ?? defaults.browserRunsRoot),
     browserUserDataDir: resolveUserPath(config.browserUserDataDir ?? defaults.browserUserDataDir),
     browserSourceUserDataDir: resolveUserPath(config.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir),
     env: config.env ?? defaults.env,
@@ -177,6 +180,7 @@ export async function ensureCliSkillConfig(): Promise<string> {
       skillsRoot: parsed.skillsRoot ?? defaults.skillsRoot,
       agentsSkillsRoot: parsed.agentsSkillsRoot ?? defaults.agentsSkillsRoot,
       browserExecutablePath: parsed.browserExecutablePath ?? defaults.browserExecutablePath,
+      browserRunsRoot: parsed.browserRunsRoot ?? defaults.browserRunsRoot,
       browserUserDataDir: parsed.browserUserDataDir ?? defaults.browserUserDataDir,
       browserSourceUserDataDir: parsed.browserSourceUserDataDir ?? defaults.browserSourceUserDataDir,
       env: parsed.env ?? defaults.env,

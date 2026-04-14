@@ -129,7 +129,7 @@ cli-skill run <tool-name> '{"foo":"bar"}'
 }
 ```
 
-那么每次浏览器工具执行都会在当前技能目录的 `storage/browser-runs/` 下沉淀一份本次运行记录。
+那么每次浏览器工具执行都会在 `~/.cli-skill/browser-runs/` 下沉淀一份本次运行记录。
 
 ### 安装一个已发布技能并挂给 agent
 
