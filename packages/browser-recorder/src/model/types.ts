@@ -10,13 +10,24 @@ export interface RecorderLocatorHints {
 export interface RecorderActionRecord {
   actionId: string;
   pageId?: string;
-  type: "click" | "input" | "change" | "submit" | "navigate" | "tab_switch";
+  type:
+    | "click"
+    | "input"
+    | "change"
+    | "submit"
+    | "keydown"
+    | "paste"
+    | "drop"
+    | "pageshow"
+    | "navigate"
+    | "tab_switch";
   timestamp: string;
   url: string;
   title?: string;
   tagName?: string;
   selector?: string;
   text?: string;
+  key?: string;
   value?: string;
   role?: string;
   nameAttr?: string;
@@ -52,13 +63,10 @@ export interface RecorderDomSnapshotRecord {
   url: string;
   title?: string;
   triggerActionId?: string;
-  triggerType?: RecorderActionRecord["type"] | "mutation";
+  triggerType?: RecorderActionRecord["type"];
   html: string;
   targetSelector?: string;
   targetText?: string;
-  mutationCount?: number;
-  windowStartedAt?: string;
-  windowEndedAt?: string;
 }
 
 export interface RecorderTimelineRecord {
@@ -69,7 +77,7 @@ export interface RecorderTimelineRecord {
     | "action"
     | "request_started"
     | "request_finished"
-    | "dom_changed";
+    | "dom_snapshot";
   timestamp: string;
   title: string;
   detail?: string;

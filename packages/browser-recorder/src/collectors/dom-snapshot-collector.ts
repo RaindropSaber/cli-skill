@@ -8,6 +8,8 @@ export interface DomSnapshotPayload {
   title?: string;
   html: string;
   pageId?: string;
+  triggerActionId?: string;
+  triggerType?: RecorderActionRecord["type"];
   targetSelector?: string;
   targetText?: string;
 }
@@ -21,29 +23,10 @@ export function createDomSnapshotCollector(domStore: ReturnTypeCreateDomSnapshot
     ): Promise<void> {
       const snapshot = await page
         .evaluate((): { url: string; title: string; html: string } => {
-          function findPrimaryContainer(): Element | null {
-            const selectors = [
-              '[role="dialog"]',
-              '[role="listbox"]',
-              '[role="menu"]',
-              '[role="region"]',
-              '[role="main"]',
-              "form",
-              "main",
-              "body",
-            ];
-            for (const selector of selectors) {
-              const node = document.querySelector(selector);
-              if (node) return node;
-            }
-            return document.body;
-          }
-
-          const container = findPrimaryContainer();
           return {
             url: location.href,
             title: document.title,
-            html: (container?.outerHTML || document.body?.outerHTML || "").trim(),
+            html: (document.documentElement?.outerHTML || "").trim(),
           };
         })
         .catch(() => null);
@@ -66,7 +49,7 @@ export function createDomSnapshotCollector(domStore: ReturnTypeCreateDomSnapshot
 
     async persistPayload(
       payload: DomSnapshotPayload,
-      trigger?: { actionId?: string; type?: RecorderActionRecord["type"] | "mutation"; selector?: string; text?: string },
+      trigger?: { actionId?: string; type?: RecorderActionRecord["type"]; selector?: string; text?: string },
     ): Promise<void> {
       if (!payload.html?.trim()) {
         return;
@@ -78,8 +61,8 @@ export function createDomSnapshotCollector(domStore: ReturnTypeCreateDomSnapshot
         url: payload.url,
         title: payload.title,
         html: payload.html,
-        triggerActionId: trigger?.actionId,
-        triggerType: trigger?.type,
+        triggerActionId: trigger?.actionId ?? payload.triggerActionId,
+        triggerType: trigger?.type ?? payload.triggerType,
         targetSelector: trigger?.selector ?? payload.targetSelector,
         targetText: trigger?.text ?? payload.targetText,
       });

@@ -37,6 +37,14 @@ export function createTimeline(args: {
           ? "点击"
           : action.type === "tab_switch"
             ? "切换标签页"
+          : action.type === "keydown"
+            ? `按键 ${action.key ?? ""}`.trim()
+          : action.type === "paste"
+            ? "粘贴"
+          : action.type === "drop"
+            ? "拖放"
+          : action.type === "pageshow"
+            ? "页面显示"
           : action.type === "submit"
             ? "提交"
             : action.type === "change"
@@ -77,10 +85,10 @@ export function createTimeline(args: {
     items.push({
       eventId: `evt_dom_${snapshot.domSnapshotId}`,
       pageId: snapshot.pageId,
-      type: "dom_changed",
+      type: "dom_snapshot",
       timestamp: snapshot.timestamp,
-      title: "页面变化",
-      detail: snapshot.targetText || snapshot.targetSelector || snapshot.triggerType || "DOM 发生变化",
+      title: "记录页面状态",
+      detail: snapshot.targetText || snapshot.targetSelector || snapshot.triggerType || "完整 document 快照",
       url: snapshot.url,
       actionId: snapshot.triggerActionId,
       domSnapshotId: snapshot.domSnapshotId,

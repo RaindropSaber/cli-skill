@@ -15,11 +15,10 @@ export function registerBridgeBindings(args: {
   actionStore: ReturnTypeCreateActionStore;
   getPageId: (page: Page) => string;
   onActionPage?: (page: Page, record: RecorderActionRecord) => void;
-  onClickAction: (page: Page, record: RecorderActionRecord) => Promise<void>;
   onDomSnapshot: (
     page: Page | undefined,
     payload: DomSnapshotPayload,
-    trigger?: { actionId?: string; type?: RecorderActionRecord["type"] | "mutation"; selector?: string; text?: string },
+    trigger?: { actionId?: string; type?: RecorderActionRecord["type"]; selector?: string; text?: string },
   ) => Promise<void>;
 }): Promise<unknown[]> {
   return Promise.all([
@@ -38,19 +37,15 @@ export function registerBridgeBindings(args: {
       if (source.page) {
         args.onActionPage?.(source.page, nextRecord);
       }
-
-      if (source.page && nextRecord.type === "click") {
-        queueMicrotask(() => {
-          void args.onClickAction(source.page!, nextRecord).catch(() => undefined);
-        });
-      }
+      return { actionId: nextRecord.actionId };
     }),
     args.context.exposeBinding("__cliSkillRecorderDomSnapshot", async (_source: BindingSourceLike, payload: DomSnapshotPayload) => {
       if (!args.isRecording()) {
         return;
       }
       await args.onDomSnapshot(_source.page, payload, {
-        type: "mutation",
+        actionId: payload.triggerActionId,
+        type: payload.triggerType,
         selector: payload.targetSelector,
         text: payload.targetText,
       });

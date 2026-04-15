@@ -208,15 +208,6 @@ export async function startBrowserRecorder(
     onActionPage: (sourcePage) => {
       page = sourcePage;
     },
-    onClickAction: async (sourcePage, record) => {
-      await domSnapshotCollector.capturePageSnapshot(sourcePage, getPageId(sourcePage), {
-        actionId: record.actionId,
-        type: record.type,
-        selector: record.selector,
-        text: record.text,
-      });
-      await persistDerivedArtifacts();
-    },
     onDomSnapshot: async (sourcePage, payload, trigger) => {
       if (sourcePage) {
         page = sourcePage;

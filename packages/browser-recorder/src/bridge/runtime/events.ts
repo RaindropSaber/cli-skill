@@ -10,15 +10,28 @@ import {
   textFor,
 } from "./shared.js";
 import { syncIndicatorState } from "./indicator.js";
+import { scheduleDocumentSnapshot } from "./dom-snapshots.js";
+
+const DOM_SNAPSHOT_KEYS = new Set([
+  "Enter",
+  "Escape",
+  "Tab",
+  " ",
+  "Spacebar",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+]);
 
 async function emitAction(
   state: RecorderBridgeState,
-  type: "click" | "change" | "submit",
+  type: "click" | "change" | "submit" | "keydown" | "paste" | "drop" | "pageshow",
   target: EventTarget | null,
   extra: Record<string, unknown>,
-): Promise<void> {
-  if (!state.isRecording) return;
-  if (target instanceof Element && target.closest(`#${state.rootId}`)) return;
+): Promise<{ actionId?: string } | undefined> {
+  if (!state.isRecording) return undefined;
+  if (target instanceof Element && target.closest(`#${state.rootId}`)) return undefined;
   const role = target instanceof Element ? inferredRole(target) : undefined;
   const label = target instanceof HTMLElement ? labelFor(target) : undefined;
   const placeholder = target instanceof Element ? attr(target, "placeholder") : undefined;
@@ -27,7 +40,7 @@ async function emitAction(
     ? attr(target, "data-testid") || attr(target, "data-test-id") || attr(target, "data-test")
     : undefined;
 
-  await window.__cliSkillRecorderAction({
+  const result = await window.__cliSkillRecorderAction({
     type,
     timestamp: new Date().toISOString(),
     url: location.href,
@@ -56,17 +69,45 @@ async function emitAction(
       : undefined,
     ...extra,
   });
+  return result || undefined;
+}
+
+function actionTargetFor(target: EventTarget | null): EventTarget | null {
+  if (target instanceof Element && target.closest("[contenteditable='true'], input, textarea, select, button, a[href], [role='button'], [role='menuitem'], [role='option'], [tabindex]")) {
+    return target;
+  }
+  return target instanceof Element ? target : document.activeElement;
+}
+
+async function emitActionWithDocumentSnapshot(
+  state: RecorderBridgeState,
+  type: "click" | "change" | "submit" | "keydown" | "paste" | "drop" | "pageshow",
+  target: EventTarget | null,
+  extra: Record<string, unknown> = {},
+): Promise<void> {
+  const actionTarget = actionTargetFor(target);
+  const result = await emitAction(state, type, actionTarget, extra);
+  scheduleDocumentSnapshot(state, {
+    triggerActionId: result?.actionId,
+    triggerType: type,
+    target: actionTarget,
+  });
 }
 
 async function emitTabSwitch(state: RecorderBridgeState): Promise<void> {
   if (!state.isRecording) return;
 
-  await window.__cliSkillRecorderAction({
+  const result = await window.__cliSkillRecorderAction({
     type: "tab_switch",
     timestamp: new Date().toISOString(),
     url: location.href,
     title: document.title,
     text: document.title || location.href,
+  });
+  scheduleDocumentSnapshot(state, {
+    triggerActionId: result?.actionId,
+    triggerType: "tab_switch",
+    target: document.documentElement,
   });
 }
 
@@ -74,7 +115,7 @@ export function registerRecorderEvents(state: RecorderBridgeState): void {
   document.addEventListener(
     "click",
     (event: MouseEvent) => {
-      void emitAction(state, "click", event.target, {});
+      void emitActionWithDocumentSnapshot(state, "click", event.target);
     },
     true,
   );
@@ -84,7 +125,7 @@ export function registerRecorderEvents(state: RecorderBridgeState): void {
     (event: Event) => {
       const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
       const value = target && "value" in target ? target.value : undefined;
-      void emitAction(state, "change", target, { value });
+      void emitActionWithDocumentSnapshot(state, "change", target, { value });
     },
     true,
   );
@@ -92,7 +133,34 @@ export function registerRecorderEvents(state: RecorderBridgeState): void {
   document.addEventListener(
     "submit",
     (event: SubmitEvent) => {
-      void emitAction(state, "submit", event.target, {});
+      void emitActionWithDocumentSnapshot(state, "submit", event.target);
+    },
+    true,
+  );
+
+  document.addEventListener(
+    "keydown",
+    (event: KeyboardEvent) => {
+      if (!DOM_SNAPSHOT_KEYS.has(event.key)) return;
+      void emitActionWithDocumentSnapshot(state, "keydown", event.target, {
+        key: event.key === " " || event.key === "Spacebar" ? "Space" : event.key,
+      });
+    },
+    true,
+  );
+
+  document.addEventListener(
+    "paste",
+    (event: ClipboardEvent) => {
+      void emitActionWithDocumentSnapshot(state, "paste", event.target);
+    },
+    true,
+  );
+
+  document.addEventListener(
+    "drop",
+    (event: DragEvent) => {
+      void emitActionWithDocumentSnapshot(state, "drop", event.target);
     },
     true,
   );
@@ -112,6 +180,7 @@ export function registerRecorderEvents(state: RecorderBridgeState): void {
   window.addEventListener("pageshow", () => {
     ensureMounted(state);
     void syncIndicatorState(state);
+    void emitActionWithDocumentSnapshot(state, "pageshow", document.documentElement);
   });
 
   document.addEventListener("visibilitychange", () => {

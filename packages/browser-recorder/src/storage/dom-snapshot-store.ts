@@ -12,9 +12,6 @@ export interface DomSnapshotDraft {
   triggerType?: RecorderDomSnapshotRecord["triggerType"];
   targetSelector?: string;
   targetText?: string;
-  mutationCount?: number;
-  windowStartedAt?: string;
-  windowEndedAt?: string;
 }
 
 export function createDomSnapshotStore(domPath: string) {
@@ -38,9 +35,6 @@ export function createDomSnapshotStore(domPath: string) {
         targetSelector: draft.targetSelector,
         targetText: draft.targetText,
         html: draft.html,
-        mutationCount: draft.mutationCount,
-        windowStartedAt: draft.windowStartedAt,
-        windowEndedAt: draft.windowEndedAt,
       };
       records.push(record);
       await appendJsonLine(domPath, record);
