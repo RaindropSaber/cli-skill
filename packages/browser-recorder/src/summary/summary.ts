@@ -39,6 +39,14 @@ export function createSummary(args: {
           return `输入 ${action.selector ?? action.tagName ?? "字段"}`;
         case "submit":
           return `提交 ${action.selector ?? action.tagName ?? "表单"}`;
+        case "keydown":
+          return `按键 ${action.key ?? action.selector ?? "键盘操作"}`;
+        case "paste":
+          return `粘贴到 ${action.selector ?? action.tagName ?? "页面"}`;
+        case "drop":
+          return `拖放到 ${action.selector ?? action.tagName ?? "页面"}`;
+        case "pageshow":
+          return `页面显示 ${action.url}`;
         case "tab_switch":
           return `切换到 ${action.title ?? action.url}`;
         default:

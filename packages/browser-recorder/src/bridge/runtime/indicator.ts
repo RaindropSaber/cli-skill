@@ -1,6 +1,5 @@
 import type { RecorderBridgeState } from "./shared.js";
 import { ensureMounted, fetchRecorderState } from "./shared.js";
-import { setupDomObserver } from "./dom-snapshots.js";
 
 function onPointerMove(state: RecorderBridgeState, event: PointerEvent): void {
   if (state.dragPointerId !== event.pointerId || !state.root) return;
@@ -64,9 +63,6 @@ export function applyIndicatorState(
   state.root.style.boxShadow = state.isRecording
     ? "0 18px 42px rgba(220, 38, 38, 0.28)"
     : "0 18px 42px rgba(15, 23, 42, 0.24)";
-  if (state.isRecording) {
-    setupDomObserver(state);
-  }
 }
 
 export async function syncIndicatorState(state: RecorderBridgeState): Promise<void> {

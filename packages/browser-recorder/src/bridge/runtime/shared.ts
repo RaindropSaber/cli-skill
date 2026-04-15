@@ -4,20 +4,6 @@ export interface RecorderBridgeState {
   rootId: string;
   isRecording: boolean;
   mounted: boolean;
-  domObserver: MutationObserver | null;
-  domFlushTimer: ReturnType<typeof setTimeout> | null;
-  pendingDomSnapshot: {
-    timestamp: string;
-    windowStartedAt: string;
-    windowEndedAt: string;
-    url: string;
-    title: string;
-    html: string;
-    targetSelector?: string;
-    targetText?: string;
-    mutationCount: number;
-  } | null;
-  lastDomFingerprint: string;
   dragPointerId: number | null;
   dragStartX: number;
   dragStartY: number;
@@ -40,7 +26,7 @@ declare global {
   interface Window {
     __cliSkillRecorderInjected?: boolean;
     __cliSkillRecorderGetState: (payload: { sessionId: string }) => Promise<{ active?: boolean }>;
-    __cliSkillRecorderAction: (payload: unknown) => Promise<void>;
+    __cliSkillRecorderAction: (payload: unknown) => Promise<{ actionId?: string } | void>;
     __cliSkillRecorderDomSnapshot: (payload: unknown) => Promise<void>;
   }
 }
@@ -52,10 +38,6 @@ export function createRecorderState(): RecorderBridgeState {
     rootId: "__cli_skill_browser_recorder_root__",
     isRecording: true,
     mounted: false,
-    domObserver: null,
-    domFlushTimer: null,
-    pendingDomSnapshot: null,
-    lastDomFingerprint: "",
     dragPointerId: null,
     dragStartX: 0,
     dragStartY: 0,
