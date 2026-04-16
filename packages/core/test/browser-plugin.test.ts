@@ -9,7 +9,6 @@ interface MockContext {
   pages(): MockPage[];
   newPage(): Promise<MockPage>;
   request: object;
-  storageState(args: { path: string }): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -18,7 +17,6 @@ describe("browserPlugin", () => {
   let calls: {
     attach: Array<Record<string, unknown>>;
     finalize: string[];
-    storageState: string[];
     contextClosed: number;
   };
 
@@ -26,7 +24,6 @@ describe("browserPlugin", () => {
     calls = {
       attach: [],
       finalize: [],
-      storageState: [],
       contextClosed: 0,
     };
 
@@ -40,9 +37,6 @@ describe("browserPlugin", () => {
         pages: () => [page],
         newPage: async () => page,
         request: {},
-        storageState: async ({ path }) => {
-          calls.storageState.push(path);
-        },
         close: async () => {
           calls.contextClosed += 1;
         },
@@ -89,14 +83,12 @@ describe("browserPlugin", () => {
       config: { value: {}, get: () => undefined, set: () => {} },
       env: {},
       paths: {
-        storageRoot: "/tmp/demo-storage",
+        storageRoot: "/tmp/demo-storage/user-data",
         browserRunsRoot: "/tmp/.cli-skill/browser-runs",
         browserUserDataDir: "/tmp/demo-storage/user-data",
-        authDir: "/tmp/demo-storage/user-data/.auth",
-        screenshotsDir: "/tmp/demo-storage/screenshots",
-        tracesDir: "/tmp/demo-storage/traces",
+        screenshotsDir: "/tmp/demo-storage/user-data/screenshots",
+        tracesDir: "/tmp/demo-storage/user-data/traces",
       },
-      storageStatePath: "/tmp/demo-storage/user-data/.auth/user.json",
     };
 
     const pluginCtx = await browserPlugin.setup(ctx, {
@@ -131,7 +123,6 @@ describe("browserPlugin", () => {
     });
 
     expect(calls.finalize).toEqual(["completed"]);
-    expect(calls.storageState).toEqual([ctx.storageStatePath]);
     expect(calls.contextClosed).toBe(1);
   });
 
@@ -143,14 +134,12 @@ describe("browserPlugin", () => {
       config: { value: {}, get: () => undefined, set: () => {} },
       env: {},
       paths: {
-        storageRoot: "/tmp/demo-storage",
+        storageRoot: "/tmp/demo-storage/user-data",
         browserRunsRoot: "/tmp/.cli-skill/browser-runs",
         browserUserDataDir: "/tmp/demo-storage/user-data",
-        authDir: "/tmp/demo-storage/user-data/.auth",
-        screenshotsDir: "/tmp/demo-storage/screenshots",
-        tracesDir: "/tmp/demo-storage/traces",
+        screenshotsDir: "/tmp/demo-storage/user-data/screenshots",
+        tracesDir: "/tmp/demo-storage/user-data/traces",
       },
-      storageStatePath: "/tmp/demo-storage/user-data/.auth/user.json",
     };
 
     const pluginCtx = await browserPlugin.setup(ctx, {
@@ -176,7 +165,6 @@ describe("browserPlugin", () => {
     });
 
     expect(calls.finalize).toEqual([]);
-    expect(calls.storageState).toEqual([ctx.storageStatePath]);
     expect(calls.contextClosed).toBe(1);
   });
 });

@@ -4,7 +4,7 @@ import get from "lodash/get";
 import set from "lodash/set";
 import path from "node:path";
 import { z } from "zod";
-import { getDefaultBrowserRunsRoot, getResolvedCliSkillConfig } from "./config";
+import { getCliSkillHome, getDefaultBrowserRunsRoot, getResolvedCliSkillConfig } from "./config";
 import type {
   AnySkill,
   BaseToolContext,
@@ -26,7 +26,6 @@ export function getRuntimePaths(
     storageRoot,
     browserRunsRoot,
     browserUserDataDir,
-    authDir: path.join(browserUserDataDir, ".auth"),
     screenshotsDir: path.join(storageRoot, "screenshots"),
     tracesDir: path.join(storageRoot, "traces"),
   };
@@ -85,7 +84,6 @@ async function setupPlugins(
     const pluginContext = await plugin.setup(ctx, {
       headed: options.headed,
       storageRoot: options.storageRoot,
-      storageStatePath: options.storageStatePath,
       browserUserDataDir: options.browserUserDataDir,
       browserExecutablePath: options.browserExecutablePath,
       skill,
@@ -129,21 +127,21 @@ export async function createRuntime<Skill extends AnySkill = AnySkill>(
       ? z.object(options.skill.config).parse(globalConfig)
       : {};
   const configAccessor = createSkillConfigAccessor(resolvedSkillConfig);
-  const fallbackProjectStorageRoot =
-    options.skill?.rootDir ? path.join(options.skill.rootDir, "storage") : path.join(process.cwd(), "storage");
+  const resolvedBrowserUserDataDir =
+    options.browserUserDataDir ??
+    globalConfig.browserUserDataDir ??
+    path.join(getCliSkillHome(), "browser", "user-data");
   const resolvedStorageRoot =
     options.storageRoot ??
-    fallbackProjectStorageRoot;
+    resolvedBrowserUserDataDir;
   const paths = getRuntimePaths(
     resolvedStorageRoot,
     globalConfig.browserRunsRoot ?? getDefaultBrowserRunsRoot(),
-    options.browserUserDataDir ?? globalConfig.browserUserDataDir ?? path.join(resolvedStorageRoot, "user-data"),
+    resolvedBrowserUserDataDir,
   );
-  const storageStatePath = options.storageStatePath ?? path.join(paths.authDir, "user.json");
 
   await mkdir(paths.browserUserDataDir, { recursive: true });
   await mkdir(paths.browserRunsRoot, { recursive: true });
-  await mkdir(path.dirname(storageStatePath), { recursive: true });
   await mkdir(paths.screenshotsDir, { recursive: true });
   await mkdir(paths.tracesDir, { recursive: true });
 
@@ -154,7 +152,6 @@ export async function createRuntime<Skill extends AnySkill = AnySkill>(
     config: configAccessor,
     env,
     paths,
-    storageStatePath,
   };
 
   const plugins = options.skill ? collectPlugins(options.skill) : [];
