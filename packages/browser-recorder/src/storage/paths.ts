@@ -3,9 +3,7 @@ import { ensureDir } from "./io.js";
 
 export interface RecorderSessionPaths {
   recordingDir: string;
-  authDir: string;
   userDataDir: string;
-  storageStatePath: string;
   actionsPath: string;
   networkPath: string;
   domPath: string;
@@ -29,18 +27,14 @@ export async function createRecorderSessionPaths(
   browserUserDataDir: string,
 ): Promise<RecorderSessionPaths> {
   const recordingDir = path.join(recordingRoot, timestampForDir());
-  const authDir = path.join(browserUserDataDir, ".auth");
   const userDataDir = browserUserDataDir;
 
   await ensureDir(recordingDir);
-  await ensureDir(authDir);
   await ensureDir(userDataDir);
 
   return {
     recordingDir,
-    authDir,
     userDataDir,
-    storageStatePath: path.join(authDir, "user.json"),
     actionsPath: path.join(recordingDir, "actions.jsonl"),
     networkPath: path.join(recordingDir, "network.jsonl"),
     domPath: path.join(recordingDir, "dom.jsonl"),

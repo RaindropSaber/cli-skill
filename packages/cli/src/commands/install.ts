@@ -19,12 +19,21 @@ const defaultDeps: InstallCommandDeps = {
   setupLocalSkillBins,
 };
 
+function splitPackageSpec(spec: string): { name: string; spec: string } {
+  const atIndex = spec.indexOf("@", spec.startsWith("@") ? 1 : 0);
+  if (atIndex > 0) {
+    return { name: spec.slice(0, atIndex), spec };
+  }
+  return { name: spec, spec };
+}
+
 export function createInstallSkillHandler(deps: InstallCommandDeps = defaultDeps) {
-  return async (packageName: string, options: { registry?: string }) => {
+  return async (packageSpec: string, options: { registry?: string }) => {
+    const { name: packageName, spec } = splitPackageSpec(packageSpec);
     const skillName = getSkillNameFromPackageName(packageName);
     const skillsRoot = await deps.getDefaultSkillsRoot();
     const installDir = path.join(skillsRoot, skillName);
-    await deps.installPackageToDirectory(packageName, installDir, options.registry);
+    await deps.installPackageToDirectory(spec, installDir, options.registry);
     const packageDir = path.join(installDir, "node_modules", packageName);
     await deps.registerInstalledSkillProject(packageDir);
     await deps.setupLocalSkillBins(packageDir);

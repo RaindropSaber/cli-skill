@@ -84,7 +84,6 @@ export const browserPlugin: SkillPlugin<BrowserPluginContext> = {
     if (ctx.__browserRunRecordingHandle) {
       await ctx.__browserRunRecordingHandle.finalize("completed").catch(() => undefined);
     }
-    await ctx.context.storageState({ path: ctx.storageStatePath });
     await ctx.context.close();
   },
 };

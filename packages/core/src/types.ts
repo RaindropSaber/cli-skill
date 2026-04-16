@@ -4,7 +4,6 @@ export interface RuntimePaths {
   storageRoot: string;
   browserRunsRoot: string;
   browserUserDataDir: string;
-  authDir: string;
   screenshotsDir: string;
   tracesDir: string;
 }
@@ -34,7 +33,6 @@ export interface BaseToolContext {
   config: SkillConfigAccessor;
   env: Record<string, string>;
   paths: RuntimePaths;
-  storageStatePath: string;
 }
 
 export interface BrowserRunRecordingInfo {
@@ -51,7 +49,6 @@ export interface ToolExample {
 export interface SkillPluginSetupOptions {
   headed?: boolean;
   storageRoot?: string;
-  storageStatePath?: string;
   browserUserDataDir?: string;
   browserExecutablePath?: string;
 }

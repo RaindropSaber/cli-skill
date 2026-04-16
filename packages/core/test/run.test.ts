@@ -14,13 +14,12 @@ describe("runTool", () => {
           config: { value: {}, get: () => undefined, set: () => {} },
           env: {},
           paths: {
-            storageRoot: "/tmp/demo-storage",
+            storageRoot: "/tmp/demo-storage/user-data",
+            browserRunsRoot: "/tmp/browser-runs",
             browserUserDataDir: "/tmp/demo-storage/user-data",
-            authDir: "/tmp/demo-storage/user-data/.auth",
-            screenshotsDir: "/tmp/demo-storage/screenshots",
-            tracesDir: "/tmp/demo-storage/traces",
+            screenshotsDir: "/tmp/demo-storage/user-data/screenshots",
+            tracesDir: "/tmp/demo-storage/user-data/traces",
           },
-          storageStatePath: "/tmp/demo-storage/user-data/.auth/user.json",
           browserRunRecording: {
             sessionId: "rec_test",
             recordingDir: "/tmp/browser-runs/rec_test",

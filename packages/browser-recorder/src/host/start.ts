@@ -58,16 +58,6 @@ export async function startBrowserRecorder(
 
   async function persistResult(): Promise<void> {
     session.updateFinalUrl(page?.url());
-    if (context) {
-      try {
-        await context.storageState({ path: paths.storageStatePath });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (!message.includes("Target page, context or browser has been closed")) {
-          throw error;
-        }
-      }
-    }
     const summary = createSummary({
       sessionId: session.sessionId,
       recordingDir: paths.recordingDir,
